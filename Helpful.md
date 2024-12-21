@@ -1,0 +1,1 @@
+export AIRFLOW**CORE**DAGS_FOLDER=$(pwd)/DAGs
