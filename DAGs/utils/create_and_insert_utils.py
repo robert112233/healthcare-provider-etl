@@ -11,7 +11,7 @@ def create_random_appointment():
     return {
         'last_updated': datetime.now(),
         'appointment_date': create_random_date(),
-        'appointment_status': 'upcoming',
+        'appointment_status': ['upcoming', 'pending', 'booked', 'scheduled'][randint(0,3)],
         'patient_id': randint(0, 500),
         'staff_id': randint(0, 25),
         'notes': create_random_notes()
