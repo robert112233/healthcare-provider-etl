@@ -1,5 +1,7 @@
 import os
 import pandas as pd
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from psycopg2 import sql
 
 def create_filepath(kwargs, table_name, stage):
     time_partition = kwargs.get('execution_date').strftime("%Y/%m/%d/%H")
@@ -19,7 +21,7 @@ def transform_appointments(app_path):
     return app_df
 
 def transform_patients(pat_path):
-    pat_cols = ['last_updated', 'first_name', 'last_name', 'date_of_birth', 'sex', 'height', 'weight', 'phone_number', 'address']
+    pat_cols = ['last_updated', 'patient_id', 'first_name', 'last_name', 'date_of_birth', 'sex', 'height', 'weight', 'phone_number', 'address']
 
     pat_df = pd.read_csv(pat_path, names=pat_cols)
 
@@ -31,7 +33,7 @@ def transform_patients(pat_path):
 
     pat_df['height_cm'] = pat_df['height'].apply(lambda x: ft_to_cm(x) if '\'' in x else int(x[:-2]))
  
-    pat_df['bmi'] = pat_df['weight_kg'] / (pat_df['height_cm'] / 100) ** 2
+    pat_df['bmi'] = (pat_df['weight_kg'] / (pat_df['height_cm'] / 100) ** 2).round(1)
 
     pat_df.drop(inplace=True, columns=['height', 'weight'])
 
@@ -45,3 +47,55 @@ def ft_to_cm(ft):
     inches = int(ft.split("'")[1][:-1])
     return int((ft_to_inches + inches) * 2.54)
 
+def load_patients(pat_path):
+    hook = PostgresHook(postgres_conn_id="olap_conn")
+    conn = hook.get_conn()
+    cursor = conn.cursor()
+    
+    staging_query = sql.SQL("COPY staging_patients FROM {} WITH (FORMAT csv);").format(
+        sql.Literal(pat_path)
+    )
+
+    cursor.execute(staging_query)
+
+    upsert_query = """INSERT INTO dim_patients (last_updated, patient_id, first_name, last_name, date_of_birth, sex, height_cm, weight_kg, phone_number, address, bmi)
+                      SELECT last_updated, patient_id, first_name, last_name, date_of_birth, sex, height_cm, weight_kg, phone_number, address, bmi
+                      FROM staging_patients
+                      ON CONFLICT(patient_id)
+                      DO UPDATE SET
+                        last_updated = EXCLUDED.last_updated,
+                        height_cm = EXCLUDED.height_cm,
+                        weight_kg = EXCLUDED.weight_kg,
+                        last_name = EXCLUDED.last_name,
+                        address = EXCLUDED.address,
+                        bmi = EXCLUDED.bmi;"""
+
+    cursor.execute(upsert_query)
+
+    conn.commit()
+    cursor.close()
+
+def load_appointments(app_path):
+    hook = PostgresHook(postgres_conn_id="olap_conn")
+    conn = hook.get_conn()
+    cursor = conn.cursor()
+
+    staging_query = sql.SQL("COPY staging_appointments FROM {} WITH (FORMAT csv);").format(
+        sql.Literal(app_path)
+    )    
+
+    cursor.execute(staging_query)
+
+    upsert_query = """INSERT INTO fact_appointments (appointment_id, last_updated, appointment_date, appointment_status, patient_id, staff_id, notes)
+                      SELECT appointment_id, last_updated, appointment_date, appointment_status, patient_id, staff_id, notes
+                      FROM staging_appointments
+                      ON CONFLICT(appointment_id)
+                      DO UPDATE SET
+                        last_updated = EXCLUDED.last_updated,
+                        appointment_status = EXCLUDED.appointment_status,
+                        appointment_date = EXCLUDED.appointment_date;"""
+    
+    cursor.execute(upsert_query)
+
+    conn.commit()
+    cursor.close()

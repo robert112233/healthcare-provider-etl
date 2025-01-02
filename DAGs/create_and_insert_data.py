@@ -14,11 +14,12 @@ with DAG(
     start_date=datetime(2024, 1, 1),
     schedule_interval=None,
     catchup=False,
+    tags=["healthcare_provider_etl"],
 ) as dag:
 
     create_patients_table_task = PostgresOperator(
         task_id='create_patients_table',
-        postgres_conn_id='my_postgres_conn', 
+        postgres_conn_id='oltp_conn', 
         sql="""CREATE TABLE IF NOT EXISTS patients (
                    last_updated TIMESTAMP,
                    patient_id SERIAL PRIMARY KEY,
@@ -35,7 +36,7 @@ with DAG(
 
     create_appointments_table_task = PostgresOperator(
         task_id = 'create_appointments_table',
-        postgres_conn_id='my_postgres_conn',
+        postgres_conn_id='oltp_conn',
         sql="""CREATE TABLE IF NOT EXISTS appointments (
                    appointment_id SERIAL PRIMARY KEY,
                    last_updated TIMESTAMP,
@@ -48,7 +49,7 @@ with DAG(
     )
 
     def insert_patients():
-        hook = PostgresHook(postgres_conn_id="my_postgres_conn")
+        hook = PostgresHook(postgres_conn_id="oltp_conn")
         conn = hook.get_conn()
         cursor = conn.cursor()
         patients = create_random_patients() 
@@ -69,7 +70,7 @@ with DAG(
 
     def insert_appointments():
         appointments = create_random_appointments()
-        hook = PostgresHook(postgres_conn_id="my_postgres_conn")
+        hook = PostgresHook(postgres_conn_id="oltp_conn")
         conn = hook.get_conn()
         cursor = conn.cursor()
         query = """INSERT INTO appointments (last_updated, appointment_date, appointment_status, patient_id, staff_id, notes) 

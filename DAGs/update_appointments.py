@@ -12,14 +12,15 @@ logger.setLevel(logging.INFO)
 
 with DAG(
     "update_appointments",
+    tags=["healthcare_provider_etl"],
     start_date=datetime(2024, 1, 1),
-    schedule_interval=None,
+    schedule_interval="*/7 * * * *",
     catchup=False,
 ) as dag:
 
     def update_appointments():
         amount = randint(0, 5)
-        hook = PostgresHook(postgres_conn_id="my_postgres_conn")
+        hook = PostgresHook(postgres_conn_id="oltp_conn")
         conn = hook.get_conn()
         cursor = conn.cursor()
         cursor.execute("SELECT MAX(appointment_id) FROM appointments;")
@@ -30,7 +31,7 @@ with DAG(
             random_status = ['cancelled', 'attended', 'missed'][randint(0,2)]
             cursor.execute("""UPDATE appointments 
                               SET appointment_status = %(random_status)s, last_updated = NOW() 
-                              WHERE appointment_id = %(random_id)s AND appointment_status = 'upcoming';""", {'random_status': random_status, 'random_id': random_id})
+                              WHERE appointment_id = %(random_id)s AND appointment_status IN ('upcoming', 'pending', 'booked', 'scheduled');""", {'random_status': random_status, 'random_id': random_id})
             logger.info(f'Appointment with id of {random_id} has been updated to {random_status}')
 
         conn.commit()
@@ -38,7 +39,7 @@ with DAG(
 
     def insert_random_appointments():
         amount = randint(0, 5)
-        hook = PostgresHook(postgres_conn_id="my_postgres_conn")
+        hook = PostgresHook(postgres_conn_id="oltp_conn")
         conn = hook.get_conn()
         cursor = conn.cursor()
         for _ in range(amount):
