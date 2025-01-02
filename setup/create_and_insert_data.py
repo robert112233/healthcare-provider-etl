@@ -1,9 +1,58 @@
 from datetime import datetime
 from random import randint
+import psycopg2
+
+def insert_patients(ENVIRONMENT):
+
+    connection = psycopg2.connect(
+        dbname="healthcare_provider_oltp",
+        user="postgres",
+        password="postgres",
+        host='localhost',
+        port=5432
+    )
+    
+    connection.autocommit = True
+    cursor = connection.cursor()
+
+    patients = create_random_patients() 
+    query = """
+    INSERT INTO patients (last_updated, first_name, last_name, date_of_birth, sex, height, weight, phone_number, address)
+    VALUES (%(last_updated)s, %(first_name)s, %(last_name)s, %(date_of_birth)s, %(sex)s, %(height)s, %(weight)s, %(phone_number)s, %(address)s);
+    """
+    for patient in patients:
+        cursor.execute(query, patient)
+    print(f"Inserted {len(patients)} patients successfully ✅")
+    connection.commit()
+    cursor.close()
+
+def insert_appointments(ENVIRONMENT):
+    connection = psycopg2.connect(
+        dbname="healthcare_provider_oltp",
+        user="postgres",
+        password="postgres",
+        host='localhost',
+        port=5432
+    )
+    
+    connection.autocommit = True
+    cursor = connection.cursor()
+
+    appointments = create_random_appointments()
+
+    query = """INSERT INTO appointments (last_updated, appointment_date, appointment_status, patient_id, staff_id, notes) 
+                    VALUES
+                    (%(last_updated)s, %(appointment_date)s, %(appointment_status)s, %(patient_id)s, %(staff_id)s, %(notes)s);"""
+    for appointment in appointments:
+        cursor.execute(query, appointment)
+    print(f"Inserted {len(appointments)} appointments successfully ✅")
+
+    connection.commit()
+    cursor.close()
 
 def create_random_appointments():
     appointments = []
-    for _ in range(1, 100):
+    for _ in range(1, 101):
         appointments.append(create_random_appointment())
     return appointments
 
