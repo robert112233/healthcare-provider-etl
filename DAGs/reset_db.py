@@ -16,7 +16,7 @@ with DAG(
 
     drop_patients_table_task = PostgresOperator(
         task_id='reset_db',
-        postgres_conn_id='olap_conn', 
+        postgres_conn_id='healthcare_provider_olap_conn', 
         sql="""DROP TABLE IF EXISTS staging_patients;
                DROP TABLE IF EXISTS staging_appointments;
                DROP TABLE IF EXISTS dim_patients;

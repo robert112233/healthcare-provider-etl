@@ -2,18 +2,10 @@ from datetime import datetime
 from random import randint
 import psycopg2
 
-def insert_patients(ENVIRONMENT):
+def insert_patients(oltp_conn):
 
-    connection = psycopg2.connect(
-        dbname="healthcare_provider_oltp",
-        user="postgres",
-        password="postgres",
-        host='localhost',
-        port=5432
-    )
-    
-    connection.autocommit = True
-    cursor = connection.cursor()
+    oltp_conn.autocommit = True
+    cursor = oltp_conn.cursor()
 
     patients = create_random_patients() 
     query = """
@@ -23,20 +15,13 @@ def insert_patients(ENVIRONMENT):
     for patient in patients:
         cursor.execute(query, patient)
     print(f"Inserted {len(patients)} patients successfully ✅")
-    connection.commit()
+    oltp_conn.commit()
     cursor.close()
 
-def insert_appointments(ENVIRONMENT):
-    connection = psycopg2.connect(
-        dbname="healthcare_provider_oltp",
-        user="postgres",
-        password="postgres",
-        host='localhost',
-        port=5432
-    )
+def insert_appointments(oltp_conn):
     
-    connection.autocommit = True
-    cursor = connection.cursor()
+    oltp_conn.autocommit = True
+    cursor = oltp_conn.cursor()
 
     appointments = create_random_appointments()
 
@@ -47,7 +32,7 @@ def insert_appointments(ENVIRONMENT):
         cursor.execute(query, appointment)
     print(f"Inserted {len(appointments)} appointments successfully ✅")
 
-    connection.commit()
+    oltp_conn.commit()
     cursor.close()
 
 def create_random_appointments():

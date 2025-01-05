@@ -1,17 +1,10 @@
 import logging
 import psycopg2
 
-def create_oltp_tables(ENVIRONMENT):
-    connection = psycopg2.connect(
-            dbname="healthcare_provider_oltp",
-            user="postgres",
-            password="postgres",
-            host='localhost',
-            port=5432
-        )
-        
-    connection.autocommit = True
-    cursor = connection.cursor()
+def create_oltp_tables(oltp_conn):
+     
+    oltp_conn.autocommit = True
+    cursor = oltp_conn.cursor()
 
     oltp_query = """DROP TABLE IF EXISTS patients;
                     DROP TABLE IF EXISTS appointments;
@@ -41,19 +34,11 @@ def create_oltp_tables(ENVIRONMENT):
     print(f"oltp tables created successfully ✅")
 
     cursor.close()
-    connection.close()
 
-def create_olap_tables(ENVIRONMENT):
-    connection = psycopg2.connect(
-            dbname="healthcare_provider_oltp",
-            user="postgres",
-            password="postgres",
-            host='localhost',
-            port=5432
-        )
-        
-    connection.autocommit = True
-    cursor = connection.cursor()
+def create_olap_tables(olap_conn):
+      
+    olap_conn.autocommit = True
+    cursor = olap_conn.cursor()
 
     olap_drop_query = """DROP TABLE IF EXISTS staging_patients;
                          DROP TABLE IF EXISTS staging_appointments;
@@ -112,4 +97,3 @@ def create_olap_tables(ENVIRONMENT):
     print(f"olap tables created successfully ✅")
 
     cursor.close()
-    connection.close()

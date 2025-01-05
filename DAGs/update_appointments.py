@@ -20,7 +20,7 @@ with DAG(
 
     def update_appointments():
         amount = randint(0, 5)
-        hook = PostgresHook(postgres_conn_id="oltp_conn")
+        hook = PostgresHook(postgres_conn_id="healthcare_provider_oltp_conn")
         conn = hook.get_conn()
         cursor = conn.cursor()
         cursor.execute("SELECT MAX(appointment_id) FROM appointments;")
@@ -39,7 +39,7 @@ with DAG(
 
     def insert_random_appointments():
         amount = randint(0, 5)
-        hook = PostgresHook(postgres_conn_id="oltp_conn")
+        hook = PostgresHook(postgres_conn_id="healthcare_provider_oltp_conn")
         conn = hook.get_conn()
         cursor = conn.cursor()
         for _ in range(amount):

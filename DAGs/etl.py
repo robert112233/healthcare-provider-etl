@@ -20,7 +20,7 @@ with DAG(
     def extract(**kwargs):
         execution_date = kwargs['execution_date'].strftime('%Y-%m-%d %H:%M:%S')
         prev_execution_date = kwargs['prev_execution_date'].strftime('%Y-%m-%d %H:%M:%S')
-        hook = PostgresHook(postgres_conn_id="oltp_conn")
+        hook = PostgresHook(postgres_conn_id="healthcare_provider_oltp_conn")
         conn = hook.get_conn()
         cursor = conn.cursor()
 

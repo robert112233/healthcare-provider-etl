@@ -1,13 +1,22 @@
 import os
 import pandas as pd
+import socket
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from psycopg2 import sql
+from dotenv import load_dotenv
+
 
 def create_filepath(kwargs, table_name, stage):
+    load_dotenv()
+    ENVIRONMENT = os.getenv('ENVIRONMENT')
+    
     time_partition = kwargs.get('execution_date').strftime("%Y/%m/%d/%H")
     filename = kwargs.get('execution_date').strftime("%Y-%m-%d_%H:%M:%S")
-    path = f"/tmp/{stage}/{table_name}/{time_partition}/{filename}.csv"
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    if ENVIRONMENT == "local":
+        path = f"/tmp/{stage}/{table_name}/{time_partition}/{filename}.csv"
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+    else: 
+        print("we haven't done this yet! ETL utils line 17.")
     return path
 
 def transform_appointments(app_path):
@@ -48,7 +57,7 @@ def ft_to_cm(ft):
     return int((ft_to_inches + inches) * 2.54)
 
 def load_patients(pat_path):
-    hook = PostgresHook(postgres_conn_id="olap_conn")
+    hook = PostgresHook(postgres_conn_id="healthcare_provider_olap_conn")
     conn = hook.get_conn()
     cursor = conn.cursor()
     
@@ -76,7 +85,7 @@ def load_patients(pat_path):
     cursor.close()
 
 def load_appointments(app_path):
-    hook = PostgresHook(postgres_conn_id="olap_conn")
+    hook = PostgresHook(postgres_conn_id="healthcare_provider_olap_conn")
     conn = hook.get_conn()
     cursor = conn.cursor()
 

@@ -16,7 +16,7 @@ with DAG(
     
     create_patients_staging_task = PostgresOperator(
         task_id = 'create_patients_staging',
-        postgres_conn_id='olap_conn',
+        postgres_conn_id='healthcare_provider_olap_conn',
         sql="""CREATE TABLE IF NOT EXISTS staging_patients (
                    last_updated TIMESTAMP,
                    patient_id INT,
@@ -33,7 +33,7 @@ with DAG(
     
     create_appointments_staging_task = PostgresOperator(
         task_id = 'create_appointments_staging',
-        postgres_conn_id='olap_conn',
+        postgres_conn_id='healthcare_provider_olap_conn',
         sql="""CREATE TABLE IF NOT EXISTS staging_appointments (
                    appointment_id INT,
                    last_updated TIMESTAMP,
@@ -47,7 +47,7 @@ with DAG(
     
     create_patients_table_task = PostgresOperator(
         task_id = 'create_patients_table',
-        postgres_conn_id='olap_conn',
+        postgres_conn_id='healthcare_provider_olap_conn',
         sql="""CREATE TABLE IF NOT EXISTS dim_patients (
                    last_updated TIMESTAMP,
                    patient_id INT PRIMARY KEY,
@@ -64,7 +64,7 @@ with DAG(
     
     create_appointments_table_task = PostgresOperator(
         task_id = 'create_appointments_table',
-        postgres_conn_id='olap_conn',
+        postgres_conn_id='healthcare_provider_olap_conn',
         sql="""CREATE TABLE IF NOT EXISTS fact_appointments (
                    appointment_id INT PRIMARY KEY,
                    last_updated TIMESTAMP,
