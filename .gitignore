@@ -2,4 +2,5 @@
 *tfstate*
 *.terraform*
 **/venv/
-**/*pycache*
+*hashicorp*
+*__pycache__*
