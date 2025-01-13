@@ -2,66 +2,73 @@ from airflow.models import Connection
 from airflow.utils.session import create_session
 from dotenv import load_dotenv
 import os
+import requests
 
 def create_airflow_oltp_connection(RDS_ENDPOINT):
- 
-    with create_session() as session:
 
-        conn = session.query(Connection).filter(Connection.conn_id == 'healthcare_provider_oltp_conn').first()
+    load_dotenv()
 
-        if conn:
-            session.delete(conn)
-            session.commit()
+    DB_USERNAME = os.getenv("DB_USERNAME")
+    DB_PASSWORD = os.getenv("DB_PASSWORD")
+    HOSTNAME = RDS_ENDPOINT.split(":")[0]
 
-        load_dotenv()
+    patch_url = 'http://localhost:8081/api/v1/connections/healthcare_provider_oltp_conn'
+    post_url = 'http://localhost:8081/api/v1/connections'
+    json = {"connection_id": "healthcare_provider_oltp_conn",
+            "conn_type": "postgres",
+            "host": HOSTNAME,
+            "login": DB_USERNAME,
+            "password": DB_PASSWORD,
+            "extra": '{"dbname": "healthcare_provider_oltp"}',
+            "port": 5432
+            }
+    response = requests.patch(patch_url, json=json, auth=('admin', 'admin'))
+    if response.status_code == 404:
+        requests.post(post_url, json=json, auth=('admin', 'admin'))
 
-        DB_USERNAME = os.getenv("DB_USERNAME")
-        DB_PASSWORD = os.getenv("DB_PASSWORD")
-        OLTP_NAME = os.getenv("OLTP_NAME")
-
-        conn = Connection(
-            conn_id='healthcare_provider_oltp_conn',
-            conn_type='postgres',
-            host=RDS_ENDPOINT,
-            login=DB_USERNAME,
-            password=DB_PASSWORD,
-            extra={"dbname": OLTP_NAME},
-            port=5432
-            )
-
-        session.add(conn)
-        session.commit()
-
-        print("Added 'healthcare_provider_oltp_conn' to Airflow connections 🔌")
+    print("Added 'healthcare_provider_oltp_conn' to Airflow connections 🔌")
 
 def create_airflow_olap_connection(RDS_ENDPOINT):
 
-    with create_session() as session:
+    load_dotenv()
 
-        conn = session.query(Connection).filter(Connection.conn_id == 'healthcare_provider_olap_conn').first()
+    DB_USERNAME = os.getenv("DB_USERNAME")
+    DB_PASSWORD = os.getenv("DB_PASSWORD")
+    HOSTNAME = RDS_ENDPOINT.split(":")[0]
 
-        if conn:
-            session.delete(conn)
-            session.commit()
+    patch_url = 'http://localhost:8081/api/v1/connections/healthcare_provider_olap_conn'
+    post_url = 'http://localhost:8081/api/v1/connections'
+    json = {"connection_id": "healthcare_provider_olap_conn",
+            "conn_type": "postgres",
+            "host": HOSTNAME,
+            "login": DB_USERNAME,
+            "password": DB_PASSWORD,
+            "extra": '{"dbname": "healthcare_provider_olap"}',
+            "port": 5432
+            }
+    response = requests.patch(patch_url, json=json, auth=('admin', 'admin'))
+    if response.status_code == 404:
+        requests.post(post_url, json=json, auth=('admin', 'admin'))
 
-        load_dotenv()
+    print("Added 'healthcare_provider_olap_conn' to Airflow connections 🔌")
 
-        DB_USERNAME = os.getenv("DB_USERNAME")
-        DB_PASSWORD = os.getenv("DB_PASSWORD")
-        OLAP_NAME = os.getenv("OLAP_NAME")
+def create_airflow_aws_connection():
 
-        conn = Connection(
-            conn_id='healthcare_provider_olap_conn',
-            conn_type='postgres',
-            host=RDS_ENDPOINT,
-            login=DB_USERNAME,
-            password=DB_PASSWORD,
-            extra={"dbname": OLAP_NAME},
-            port=5432
-            )
+    load_dotenv()
+
+    S3_IAM_ACCESS_KEY_ID = os.getenv("S3_IAM_ACCESS_KEY_ID")
+    S3_IAM_SECRET_ACCESS_KEY = os.getenv("S3_IAM_SECRET_ACCESS_KEY")
 
 
-        session.add(conn)
-        session.commit()
+    patch_url = 'http://localhost:8081/api/v1/connections/healthcare_provider_aws_conn'
+    post_url = 'http://localhost:8081/api/v1/connections'
+    json = {"connection_id": "healthcare_provider_aws_conn",
+            "conn_type": "aws",
+            "login": S3_IAM_ACCESS_KEY_ID,
+            "password": S3_IAM_SECRET_ACCESS_KEY,
+            }
+    response = requests.patch(patch_url, json=json, auth=('admin', 'admin'))
+    if response.status_code == 404:
+        requests.post(post_url, json=json, auth=('admin', 'admin'))
 
-        print("Added 'healthcare_provider_olap_conn' to Airflow connections 🔌")
+    print("Added 'healthcare_provider_aws_conn' to Airflow connections 🔌")

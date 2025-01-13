@@ -1,22 +1,16 @@
 import os
 import pandas as pd
-import socket
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from psycopg2 import sql
-from dotenv import load_dotenv
 
 
 def create_filepath(kwargs, table_name, stage):
-    load_dotenv()
-    ENVIRONMENT = os.getenv('ENVIRONMENT')
-    
     time_partition = kwargs.get('execution_date').strftime("%Y/%m/%d/%H")
     filename = kwargs.get('execution_date').strftime("%Y-%m-%d_%H:%M:%S")
-    if ENVIRONMENT == "local":
-        path = f"/tmp/{stage}/{table_name}/{time_partition}/{filename}.csv"
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-    else: 
-        print("we haven't done this yet! ETL utils line 17.")
+    path = f"/tmp/{stage}/{table_name}/{time_partition}/{filename}.csv"
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
     return path
 
 def transform_appointments(app_path):
@@ -77,7 +71,8 @@ def load_patients(pat_path):
                         weight_kg = EXCLUDED.weight_kg,
                         last_name = EXCLUDED.last_name,
                         address = EXCLUDED.address,
-                        bmi = EXCLUDED.bmi;"""
+                        bmi = EXCLUDED.bmi;
+                      TRUNCATE TABLE staging_patients;"""
 
     cursor.execute(upsert_query)
 
@@ -102,9 +97,17 @@ def load_appointments(app_path):
                       DO UPDATE SET
                         last_updated = EXCLUDED.last_updated,
                         appointment_status = EXCLUDED.appointment_status,
-                        appointment_date = EXCLUDED.appointment_date;"""
+                        appointment_date = EXCLUDED.appointment_date;
+                      TRUNCATE TABLE staging_appointments;"""
     
     cursor.execute(upsert_query)
 
     conn.commit()
     cursor.close()
+
+def upload_to_s3(path, stage, BUCKET_SUFFIX):
+    stripped_path = path[5:]
+    bucket_name = f"healthcare-provider-etl-{stage}-bucket-{BUCKET_SUFFIX}"
+    s3_hook = S3Hook(aws_conn_id="healthcare_provider_aws_conn")
+    s3_hook.load_file(filename=path, key = stripped_path, bucket_name=bucket_name, replace=True)
+    print(f"uploaded to {stage} bucket!")

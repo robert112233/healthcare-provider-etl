@@ -6,8 +6,10 @@ from datetime import datetime
 from psycopg2 import sql
 import pandas as pd
 import os
+import dotenv
+import logging
 
-from utils.etl_utils import create_filepath, transform_appointments, transform_patients, load_appointments, load_patients
+from utils.etl_utils import create_filepath, transform_appointments, transform_patients, load_appointments, load_patients, upload_to_s3
 
 with DAG(
     "etl",
@@ -18,6 +20,9 @@ with DAG(
 ) as dag:
     
     def extract(**kwargs):
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.INFO)
+        print("extracting...")
         execution_date = kwargs['execution_date'].strftime('%Y-%m-%d %H:%M:%S')
         prev_execution_date = kwargs['prev_execution_date'].strftime('%Y-%m-%d %H:%M:%S')
         hook = PostgresHook(postgres_conn_id="healthcare_provider_oltp_conn")
@@ -32,7 +37,11 @@ with DAG(
         rows = cursor.fetchall()
         tables = [row[1] for row in rows]
 
-        
+        dotenv.load_dotenv()
+
+        ENVIRONMENT = os.getenv("ENVIRONMENT")
+        BUCKET_SUFFIX = os.getenv("BUCKET_SUFFIX")
+    
         for table_name in tables:
 
             if execution_date == prev_execution_date:
@@ -51,6 +60,9 @@ with DAG(
             df = pd.DataFrame(rows)
             path = create_filepath(kwargs, table_name, "extract")
             df.to_csv(path, index=False, header=False)
+            if ENVIRONMENT == 'cloud':
+                # parsed
+                upload_to_s3(path, 'extract', BUCKET_SUFFIX, logger)
         
         cursor.close()
 

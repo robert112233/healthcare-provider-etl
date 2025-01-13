@@ -6,7 +6,7 @@ variable "bucket_names" {
 }
 
 variable "subnet_ranges" {
-  default = ["10.0.0.0/25", "10.0.0.128/25"]
+  default = ["10.0.0.0/26", "10.0.0.64/26", "10.0.0.128/26", "10.0.0.192/26"]
 }
 
 variable "availability_zones" {

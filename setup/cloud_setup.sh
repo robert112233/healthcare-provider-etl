@@ -8,8 +8,4 @@ cd terraform
 
 terraform init
 
-terraform apply -auto-approve
-
-RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
-
-echo "$RDS_ENDPOINT"
+terraform apply -auto-approve 

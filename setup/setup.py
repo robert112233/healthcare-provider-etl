@@ -4,12 +4,12 @@ import subprocess
 import os
 from dotenv import load_dotenv
 from build_local import build_oltp, build_olap
-from create_connections import create_airflow_oltp_connection, create_airflow_olap_connection
+from create_connections import create_airflow_oltp_connection, create_airflow_olap_connection, create_airflow_aws_connection
 from create_tables import create_oltp_tables, create_olap_tables
 from create_and_insert_data import insert_patients, insert_appointments
 from datetime import datetime
 from requests.auth import HTTPBasicAuth
-from psycopg2.errors import ObjectInUse
+from psycopg2.errors import ObjectInUse, DuplicateDatabase
 
 def setup():
     safety_check = input("This will destroy all databases, are you sure? (yes or no)\n")
@@ -24,7 +24,7 @@ def setup():
     if ENVIRONMENT not in ['local', 'cloud']:
         setup()
 
-    store_environment(ENVIRONMENT)
+    store_env_var("ENVIRONMENT", ENVIRONMENT)
 
     if ENVIRONMENT == 'local':
         os.environ["AIRFLOW__CORE__DAGS_FOLDER"] = os.path.join(os.getcwd(), "DAGs")
@@ -32,15 +32,17 @@ def setup():
     RDS_ENDPOINT = 'localhost'
 
     if ENVIRONMENT == 'cloud':
-        RDS_ENDPOINT = apply_terraform()
-
+        bash_output = apply_terraform()
+        RDS_ENDPOINT, BUCKET_SUFFIX, S3_IAM_ACCESS_KEY_ID, S3_IAM_SECRET_ACCESS_KEY = bash_output.split('\n')
+        store_env_var("BUCKET_SUFFIX", BUCKET_SUFFIX)
+        store_env_var("S3_IAM_ACCESS_KEY_ID", S3_IAM_ACCESS_KEY_ID)
+        store_env_var("S3_IAM_SECRET_ACCESS_KEY", S3_IAM_SECRET_ACCESS_KEY)
+        create_airflow_aws_connection()
+  
     postgres_conn = create_connection("postgres", RDS_ENDPOINT)
 
-    try:
-        provision_databases(postgres_conn)
-    except ObjectInUse: 
-        print("You are still connected to either of the databases outside the project somewhere, aborting ❌")
-
+    provision_databases(postgres_conn)
+    
     oltp_conn = create_connection("oltp", RDS_ENDPOINT)
     olap_conn = create_connection("olap", RDS_ENDPOINT)
 
@@ -65,25 +67,23 @@ def create_connection(db, RDS_ENDPOINT):
         dbname=OLTP_NAME
     elif db == "olap":
         dbname=OLAP_NAME
-         
+
+    HOSTNAME = RDS_ENDPOINT.split(':')[0]
 
     connection = psycopg2.connect(
         dbname=dbname,
         user=DB_USERNAME,
         password=DB_PASSWORD,
-        host=RDS_ENDPOINT,
+        host=HOSTNAME,
         port=5432
     )
-
     return connection
 
 
 def provision_databases(postgres_conn):
-        try:
             build_oltp(postgres_conn)
             build_olap(postgres_conn)
-        except ObjectInUse:
-           raise ObjectInUse
+
 
 def create_airflow_connection(RDS_ENDPOINT):
     create_airflow_olap_connection(RDS_ENDPOINT)
@@ -100,7 +100,7 @@ def create_and_insert_data(oltp_conn):
     insert_appointments(oltp_conn)
 
 def trigger_update_appointments(RDS_ENDPOINT):
-    url = f"http://{RDS_ENDPOINT}:8081/api/v1/dags/update_appointments"
+    url = f"http://localhost:8081/api/v1/dags/update_appointments"
     headers = {
         "Content-Type": "application/json",
     }
@@ -109,7 +109,6 @@ def trigger_update_appointments(RDS_ENDPOINT):
     }
 
     auth = HTTPBasicAuth('admin', 'admin')
-
     response = requests.patch(url, json=payload, headers=headers, auth=auth)
     if response.status_code == 200:
         print(f"\nDAG 'update_appointments' has been successfully unpaused. 🔧")
@@ -117,7 +116,7 @@ def trigger_update_appointments(RDS_ENDPOINT):
         print(response.text)
 
 def trigger_etl(RDS_ENDPOINT):
-    url = f"http://{RDS_ENDPOINT}:8081/api/v1/dags/etl"
+    url = f"http://localhost:8081/api/v1/dags/etl"
     headers = {
         "Content-Type": "application/json",
     }
@@ -126,7 +125,6 @@ def trigger_etl(RDS_ENDPOINT):
     }
 
     auth = HTTPBasicAuth('admin', 'admin')
-
     response = requests.patch(url, json=payload, headers=headers, auth=auth)
     if response.status_code == 200:
         print(f"\nDAG 'etl' has been successfully unpaused. 🔧")
@@ -138,17 +136,29 @@ def trigger_etl(RDS_ENDPOINT):
         print(response.text)
 
 def apply_terraform():
-    result = subprocess.run(['bash', '-c', './setup/cloud_setup.sh'], capture_output=True, text=True)
-    return result.stdout
+    print("\nApplying terraform, this will take at least 5 minutes 🏗️")
+    subprocess.run(['bash', '-c', './setup/cloud_setup.sh'])
+    print('\nApplied!')
+    result = subprocess.run(['bash', '-c', './setup/cloud_output.sh'], capture_output=True, text=True, check=True)
+    return result.stdout.strip()
 
-def store_environment(ENVIRONMENT):
-    with open('../.env', 'r') as file:
-            content = file.read()
-            if f"ENVIRONMENT={ENVIRONMENT}" in content:
-                return
-    with open('../.env', 'a') as file:
-        file.write(f'\nENVIRONMENT={ENVIRONMENT}')
 
+def store_env_var(key, value):
+    with open('.env', 'r') as file:
+        content = file.readlines()
+        
+    env_var_found = False
+    for i, line in enumerate(content):
+        if line.startswith(f"{key}="):
+            if line.strip() != f"{key}={value}":
+                content[i] = f"{key}={value}\n"
+            env_var_found = True
+            break
+
+    if not env_var_found:
+        content.append(f"\n{key}={value}")
+
+    with open('.env', 'w') as file:
+        file.writelines(content)
 
 setup()
-
