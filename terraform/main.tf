@@ -9,7 +9,7 @@ output "bucket_suffix" {
   description = "The unique suffix for s3 buckets"
 }
 
-resource "aws_s3_bucket" "bucket" {
+resource "aws_s3_bucket" "healthcare_bucket" {
   bucket = "${var.bucket_names[count.index]}-${random_string.bucket_suffix.result}"
   count  = 2
 
@@ -34,7 +34,7 @@ resource "aws_subnet" "healthcare_provider_rds_subnet" {
   cidr_block              = var.subnet_ranges[count.index]
   availability_zone       = var.availability_zones[count.index]
   map_public_ip_on_launch = true
-  # I'm aware this is bad practice. It is to remove the need for a bastion server, which would be challenging to automate.
+  # I'm aware this is bad practice. It is to remove the need for a bastion server, which would be challenging to automate in this project
 
   tags = {
     Name = "healthcare-provider-etl"
@@ -105,28 +105,27 @@ resource "aws_route_table_association" "private_subnet_association" {
   route_table_id = aws_route_table.private_route_table.id
 }
 
+resource "aws_db_instance" "db" {
+  db_subnet_group_name = aws_db_subnet_group.healthcare_provider_db_group.name
+  allocated_storage    = 10
+  db_name              = "postgres"
+  engine               = "postgres"
+  engine_version       = "14.15"
+  instance_class       = "db.t3.micro"
+  username             = var.DB_USERNAME
+  password             = var.DB_PASSWORD
+  skip_final_snapshot  = true
+  identifier           = "oltp-olap"
+  publicly_accessible  = true
+  # I'm aware this is bad practice. It is to remove the need for a bastion server, which would be challenging to automate.
+  vpc_security_group_ids = [aws_security_group.healthcare_provider_security.id]
+}
 
-# resource "aws_db_instance" "db" {
-#   db_subnet_group_name = aws_db_subnet_group.healthcare_provider_db_group.name
-#   allocated_storage    = 10
-#   db_name              = "postgres"
-#   engine               = "postgres"
-#   engine_version       = "14.15"
-#   instance_class       = "db.t3.micro"
-#   username             = var.DB_USERNAME
-#   password             = var.DB_PASSWORD
-#   skip_final_snapshot  = true
-#   identifier           = "oltp-olap"
-#   publicly_accessible  = true
-#   # I'm aware this is bad practice. It is to remove the need for a bastion server, which would be challenging to automate.
-#   vpc_security_group_ids = [aws_security_group.healthcare_provider_security.id]
-# }
-
-# output "rds_endpoint" {
-#   value       = aws_db_instance.db.endpoint
-#   description = "The endpoint of the RDS instance"
-#   depends_on  = [aws_db_instance.db]
-# }
+output "rds_endpoint" {
+  value       = aws_db_instance.db.endpoint
+  description = "The endpoint of the RDS instance"
+  depends_on  = [aws_db_instance.db]
+}
 
 data "http" "myip" {
   url = "https://ipv4.icanhazip.com"
@@ -232,4 +231,102 @@ resource "aws_s3_object" "requirements" {
   key          = "requirements"
   source       = "../DAGs/requirements.txt"
   content_type = "text/plain"
+}
+
+resource "aws_iam_role" "healthcare_mwaa_role" {
+  assume_role_policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Deny",
+        "Action" : "s3:ListAllMyBuckets",
+        "Resource" : [
+          "arn:aws:s3:::${aws_s3_bucket.airflow_healthcare_provider_bucket.id}/*",
+          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[0].id}/*",
+          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[1].id}/*"
+        ]
+      },
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "s3:GetObject*",
+          "s3:GetBucket*",
+          "s3:List*"
+        ],
+        "Resource" : [
+          "arn:aws:s3:::${aws_s3_bucket.airflow_healthcare_provider_bucket.id}/*",
+          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[0].id}/*",
+          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[1].id}/*"
+        ]
+      },
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "logs:CreateLogStream",
+          "logs:CreateLogGroup",
+          "logs:PutLogEvents",
+          "logs:GetLogEvents",
+          "logs:GetLogRecord",
+          "logs:GetLogGroupFields",
+          "logs:GetQueryResults"
+        ],
+        "Resource" : [
+          "arn:aws:logs:${var.region}:${var.account_id}:log-group:airflow-${aws_mwaa_environment.healthcare_mwaa_environment.name}-*"
+        ]
+      },
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "logs:DescribeLogGroups"
+        ],
+        "Resource" : [
+          "*"
+        ]
+      },
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "s3:GetAccountPublicAccessBlock"
+        ],
+        "Resource" : [
+          "*"
+        ]
+      },
+      {
+        "Effect" : "Allow",
+        "Action" : "cloudwatch:PutMetricData",
+        "Resource" : "*"
+      },
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "sqs:ChangeMessageVisibility",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl",
+          "sqs:ReceiveMessage",
+          "sqs:SendMessage"
+        ],
+        "Resource" : "arn:aws:sqs:${var.region}:*:airflow-celery-*"
+      }
+    ]
+  })
+}
+
+resource "aws_mwaa_environment" "healthcare_mwaa_environment" {
+  name               = "healthcare_mwaa_environment"
+  dag_s3_path        = "dags/"
+  execution_role_arn = aws_iam_role.healthcare_mwaa_role.arn
+  network_configuration {
+    security_group_ids = [aws_security_group.healthcare_provider_security.id]
+    subnet_ids         = [aws_subnet.healthcare_provider_mwaa_subnet[*].id]
+  }
+  airflow_configuration_options = {
+    log_fetch_timeout_sec = 10
+  }
+  source_bucket_arn = aws_s3_bucket.airflow_healthcare_provider_bucket.arn
+}
+
+output "mwaa_endpoint" {
+  value = aws_mwaa_environment.healthcare_mwaa_environment.webserver_url
 }
