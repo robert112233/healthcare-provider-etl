@@ -1,6 +1,6 @@
 from DAGs.utils.create_and_insert_utils import (
-    create_random_address, 
-    create_random_phone_number, 
+    create_random_address,
+    create_random_phone_number,
     create_random_weight,
     create_random_height,
     create_random_date_of_birth,
@@ -16,6 +16,7 @@ from DAGs.utils.create_and_insert_utils import (
 
 import re
 
+
 class TestCreateRandomAddress:
 
     def test_address_is_string(self):
@@ -25,6 +26,7 @@ class TestCreateRandomAddress:
     def test_address_starts_with_number(self):
         random_address = create_random_address()
         assert re.search(r"^\d{1,2} \w*", random_address)
+
 
 class TestRandomPhoneNumber:
 
@@ -36,6 +38,7 @@ class TestRandomPhoneNumber:
         random_phone_number = create_random_phone_number()
         assert len(random_phone_number) == 11
 
+
 class TestCreateRandomWeight:
 
     def test_weight_is_string(self):
@@ -45,6 +48,7 @@ class TestCreateRandomWeight:
     def test_weight_is_kg_or_lbs(self):
         random_weight = create_random_weight()
         assert re.search(r"\d{1,3}(kg)|\d{1,3}(lbs)", random_weight)
+
 
 class TestCreateRandomHeight:
 
@@ -56,6 +60,7 @@ class TestCreateRandomHeight:
         random_height = create_random_height()
         assert re.search(r"\d{1}'\d{1}|\d{2,3}(cm)", random_height)
 
+
 class TestDateOfBirth:
 
     def test_date_of_birth_is_string(self):
@@ -66,14 +71,16 @@ class TestDateOfBirth:
         random_date_of_birth = create_random_date_of_birth()
         assert re.search(r"^\d{4}-\d{2}-\d{2}$", random_date_of_birth)
 
+
 class TestLastName:
-    
+
     def test_last_name_is_string(self):
         random_last_name = create_last_name()
         assert isinstance(random_last_name, str)
 
+
 class TestFirstName:
-    
+
     def test_first_name_is_tuple(self):
         random_first_name = create_first_name()
         assert isinstance(random_first_name, tuple)
@@ -82,6 +89,7 @@ class TestFirstName:
         name, sex = create_first_name()
         assert sex == "male" or sex == "female"
         assert isinstance(name, str)
+
 
 class TestCreateRandomPatient:
 
@@ -102,6 +110,7 @@ class TestCreateRandomPatient:
         assert 'phone_number' in random_patient
         assert 'address' in random_patient
 
+
 class TestCreateRandomPatients:
 
     def test_random_patients_is_list(self):
@@ -111,20 +120,22 @@ class TestCreateRandomPatients:
     def test_random_patients_are_correctly_structured(self):
         random_patients = create_random_patients()
         for random_patient in random_patients:
-            assert 'first_name' in random_patient   
+            assert 'first_name' in random_patient
 
-        
+
 class TestCreateRandomNotes:
-        
+
     def test_notes_are_string(self):
         random_notes = create_random_notes()
         assert isinstance(random_notes, str)
+
 
 class TestCreateRandomDate:
 
     def test_date_is_str(self):
         random_date = create_random_date()
         assert isinstance(random_date, str)
+
 
 class TestRandomAppointment:
 
@@ -141,6 +152,7 @@ class TestRandomAppointment:
         assert 'staff_id' in random_appointment
         assert 'notes' in random_appointment
 
+
 class TestCreateRandomAppointments:
 
     def test_random_appointments_is_list(self):
@@ -150,4 +162,4 @@ class TestCreateRandomAppointments:
     def test_random_appointments_are_correctly_structured(self):
         random_appointments = create_random_appointments()
         for random_patient in random_appointments:
-            assert 'patient_id' in random_patient  
+            assert 'patient_id' in random_patient

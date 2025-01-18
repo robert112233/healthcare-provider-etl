@@ -2,13 +2,13 @@ SHELL=/bin/bash
 PYTHONPATH=$(shell pwd)
 INSERTION_TERRAFORM_DIR = ./terraform/insertion
 
-.PHONY: setup
-
-apply_insertion: 
-	@dotenv run terraform -chdir=$(INSERTION_TERRAFORM_DIR) apply -auto-approve
-
-destroy_insertion: 
-	@dotenv run terraform -chdir=$(INSERTION_TERRAFORM_DIR) destroy -auto-approve
+.PHONY: setup teardown
 
 setup:
 	python ./setup/setup.py
+
+teardown:
+	python ./teardown/teardown.py
+
+lint: 
+	flake8 --exclude=venv

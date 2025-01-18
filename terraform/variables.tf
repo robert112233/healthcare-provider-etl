@@ -1,17 +1,5 @@
 variable "DB_USERNAME" {}
 variable "DB_PASSWORD" {}
-
-data "aws_caller_identity" "account" {}
-data "aws_region" "current" {}
-
-variable "account_id" {
-  default = data.aws_caller_identity.account.account_id
-}
-
-variable "region" {
-  default = data.aws_region.region.name
-}
-
 variable "bucket_names" {
   default = ["healthcare-provider-etl-extract-bucket", "healthcare-provider-etl-transform-bucket"]
 }

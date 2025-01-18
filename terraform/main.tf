@@ -1,3 +1,6 @@
+data "aws_caller_identity" "account" {}
+data "aws_region" "region" {}
+
 resource "random_string" "bucket_suffix" {
   length  = 6
   special = false
@@ -140,10 +143,26 @@ resource "aws_security_group" "healthcare_provider_security" {
 
 resource "aws_vpc_security_group_ingress_rule" "temp_postgres_acess" {
   security_group_id = aws_security_group.healthcare_provider_security.id
-  cidr_ipv4         = "5.151.29.0/32"
+  cidr_ipv4         = "5.151.29.0/24"
   from_port         = 5432
-  ip_protocol       = "TCP"
   to_port           = 5432
+  ip_protocol       = "TCP"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "https" {
+  security_group_id = aws_security_group.healthcare_provider_security.id
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "TCP"
+  cidr_ipv4         = "5.151.29.0/24"
+}
+
+resource "aws_vpc_security_group_egress_rule" "outbound_internet" {
+  security_group_id = aws_security_group.healthcare_provider_security.id
+  from_port         = 0
+  to_port           = 0
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
 }
 
 resource "aws_iam_user" "healthcare_s3_user" {
@@ -234,16 +253,43 @@ resource "aws_s3_object" "requirements" {
 }
 
 resource "aws_iam_role" "healthcare_mwaa_role" {
+  name = "healthcare_mwaa_role"
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
       {
+        "Effect" : "Allow",
+        "Principal" : {
+          "Service" : "airflow-env.amazonaws.com"
+        },
+        "Action" : "sts:AssumeRole"
+      }
+    ]
+  })
+}
+resource "aws_iam_role_policy" "healthcare_mwaa_role_policy" {
+  role = aws_iam_role.healthcare_mwaa_role.id
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Sid" : "AllowMwaaRestApiAccess",
+        "Effect" : "Allow",
+        "Action" : "airflow:InvokeRestApi",
+        "Resource" : [
+          "arn:aws:airflow:${data.aws_region.region.name}:${data.aws_caller_identity.account.account_id}:role/airflow-healthcare_mwaa_environment/healthcare_mwaa_role"
+        ]
+      },
+      {
         "Effect" : "Deny",
         "Action" : "s3:ListAllMyBuckets",
         "Resource" : [
+          "arn:aws:s3:::${aws_s3_bucket.airflow_healthcare_provider_bucket.id}",
           "arn:aws:s3:::${aws_s3_bucket.airflow_healthcare_provider_bucket.id}/*",
           "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[0].id}/*",
-          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[1].id}/*"
+          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[0].id}",
+          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[1].id}/*",
+          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[1].id}"
         ]
       },
       {
@@ -254,9 +300,12 @@ resource "aws_iam_role" "healthcare_mwaa_role" {
           "s3:List*"
         ],
         "Resource" : [
+          "arn:aws:s3:::${aws_s3_bucket.airflow_healthcare_provider_bucket.id}",
           "arn:aws:s3:::${aws_s3_bucket.airflow_healthcare_provider_bucket.id}/*",
           "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[0].id}/*",
-          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[1].id}/*"
+          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[0].id}",
+          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[1].id}/*",
+          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[1].id}"
         ]
       },
       {
@@ -271,7 +320,7 @@ resource "aws_iam_role" "healthcare_mwaa_role" {
           "logs:GetQueryResults"
         ],
         "Resource" : [
-          "arn:aws:logs:${var.region}:${var.account_id}:log-group:airflow-${aws_mwaa_environment.healthcare_mwaa_environment.name}-*"
+          "arn:aws:logs:${data.aws_region.region.name}:${data.aws_caller_identity.account.account_id}:log-group:airflow-healthcare_mwaa_environment-*"
         ]
       },
       {
@@ -280,7 +329,7 @@ resource "aws_iam_role" "healthcare_mwaa_role" {
           "logs:DescribeLogGroups"
         ],
         "Resource" : [
-          "*"
+          "arn:aws:logs:${data.aws_region.region.name}:${data.aws_caller_identity.account.account_id}:log-group:airflow-healthcare_mwaa_environment-*"
         ]
       },
       {
@@ -289,13 +338,18 @@ resource "aws_iam_role" "healthcare_mwaa_role" {
           "s3:GetAccountPublicAccessBlock"
         ],
         "Resource" : [
-          "*"
+          "arn:aws:s3:::${aws_s3_bucket.airflow_healthcare_provider_bucket.id}",
+          "arn:aws:s3:::${aws_s3_bucket.airflow_healthcare_provider_bucket.id}/*",
+          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[0].id}/*",
+          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[0].id}",
+          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[1].id}/*",
+          "arn:aws:s3:::${aws_s3_bucket.healthcare_bucket[1].id}"
         ]
       },
       {
         "Effect" : "Allow",
         "Action" : "cloudwatch:PutMetricData",
-        "Resource" : "*"
+        "Resource" : ["*"]
       },
       {
         "Effect" : "Allow",
@@ -307,22 +361,29 @@ resource "aws_iam_role" "healthcare_mwaa_role" {
           "sqs:ReceiveMessage",
           "sqs:SendMessage"
         ],
-        "Resource" : "arn:aws:sqs:${var.region}:*:airflow-celery-*"
-      }
+        "Resource" : "arn:aws:sqs:${data.aws_region.region.name}:*:airflow-celery-*"
+      },
     ]
   })
 }
 
 resource "aws_mwaa_environment" "healthcare_mwaa_environment" {
-  name               = "healthcare_mwaa_environment"
-  dag_s3_path        = "dags/"
-  execution_role_arn = aws_iam_role.healthcare_mwaa_role.arn
+  name                  = "healthcare_mwaa_environment"
+  dag_s3_path           = "dags/"
+  execution_role_arn    = aws_iam_role.healthcare_mwaa_role.arn
+  environment_class     = "mw1.small"
+  airflow_version       = "2.10.3"
+  max_workers           = 1
+  min_workers           = 1
+  schedulers            = 2
+  webserver_access_mode = "PUBLIC_ONLY"
+
   network_configuration {
     security_group_ids = [aws_security_group.healthcare_provider_security.id]
-    subnet_ids         = [aws_subnet.healthcare_provider_mwaa_subnet[*].id]
+    subnet_ids         = [aws_subnet.healthcare_provider_mwaa_subnet[0].id, aws_subnet.healthcare_provider_mwaa_subnet[1].id]
   }
   airflow_configuration_options = {
-    log_fetch_timeout_sec = 10
+    "webserver.log_fetch_timeout_sec" = "10"
   }
   source_bucket_arn = aws_s3_bucket.airflow_healthcare_provider_bucket.arn
 }

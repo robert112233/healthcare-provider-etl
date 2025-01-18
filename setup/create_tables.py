@@ -1,8 +1,5 @@
-import logging
-import psycopg2
-
 def create_oltp_tables(oltp_conn):
-     
+
     oltp_conn.autocommit = True
     cursor = oltp_conn.cursor()
 
@@ -17,7 +14,7 @@ def create_oltp_tables(oltp_conn):
                         sex VARCHAR(15),
                         height VARCHAR(15),
                         weight VARCHAR(15),
-                        phone_number BIGINT, 
+                        phone_number BIGINT,
                         address VARCHAR
                         );
                     CREATE TABLE IF NOT EXISTS appointments (
@@ -25,18 +22,19 @@ def create_oltp_tables(oltp_conn):
                         last_updated TIMESTAMP,
                         appointment_date TIMESTAMP,
                         appointment_status VARCHAR,
-                        patient_id INT, 
+                        patient_id INT,
                         staff_id INT,
                         notes VARCHAR
                         );"""
     cursor.execute(oltp_query)
 
-    print(f"oltp tables created successfully ✅")
+    print("oltp tables created successfully ✅")
 
     cursor.close()
 
+
 def create_olap_tables(olap_conn):
-      
+
     olap_conn.autocommit = True
     cursor = olap_conn.cursor()
 
@@ -54,7 +52,7 @@ def create_olap_tables(olap_conn):
                             last_name VARCHAR(30),
                             date_of_birth DATE,
                             sex VARCHAR(15),
-                            phone_number BIGINT, 
+                            phone_number BIGINT,
                             address VARCHAR,
                             weight_kg VARCHAR(15),
                             height_cm VARCHAR(15),
@@ -65,7 +63,7 @@ def create_olap_tables(olap_conn):
                             last_updated TIMESTAMP,
                             appointment_date TIMESTAMP,
                             appointment_status VARCHAR,
-                            patient_id INT, 
+                            patient_id INT,
                             staff_id INT,
                             notes VARCHAR
                             );
@@ -76,7 +74,7 @@ def create_olap_tables(olap_conn):
                             last_name VARCHAR(30),
                             date_of_birth DATE,
                             sex VARCHAR(15),
-                            phone_number BIGINT, 
+                            phone_number BIGINT,
                             address VARCHAR,
                             weight_kg VARCHAR(15),
                             height_cm VARCHAR(15),
@@ -87,13 +85,13 @@ def create_olap_tables(olap_conn):
                             last_updated TIMESTAMP,
                             appointment_date TIMESTAMP,
                             appointment_status VARCHAR,
-                            patient_id INT, 
+                            patient_id INT,
                             staff_id INT,
                             notes VARCHAR
                             );"""
 
     cursor.execute(olap_create_query)
 
-    print(f"olap tables created successfully ✅")
+    print("olap tables created successfully ✅")
 
     cursor.close()
