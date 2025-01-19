@@ -9,7 +9,7 @@ from exceptions import (
 from build_local import build_oltp, build_olap
 from requests.exceptions import ConnectionError
 from create_tables import create_oltp_tables, create_olap_tables
-from create_and_insert_data import insert_patients, insert_appointments
+from create_and_insert_data import insert_patients, insert_appointments, insert_departments, insert_staff
 from create_connections import (
     create_airflow_oltp_connection, create_airflow_olap_connection)
 
@@ -135,7 +135,9 @@ def create_tables(oltp_conn, olap_conn):
 
 
 def create_and_insert_data(oltp_conn):
-    print("\nCreating and inserting patient and appointment data... \n")
+    print("\nCreating and inserting data... \n")
+    insert_departments(oltp_conn)
+    insert_staff(oltp_conn)
     insert_patients(oltp_conn)
     insert_appointments(oltp_conn)
 

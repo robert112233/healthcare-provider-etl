@@ -161,7 +161,7 @@ resource "aws_vpc_security_group_egress_rule" "outbound_internet" {
   security_group_id = aws_security_group.healthcare_provider_security.id
   from_port         = 0
   to_port           = 0
-  ip_protocol       = "-1"
+  ip_protocol       = "TCP"
   cidr_ipv4         = "0.0.0.0/0"
 }
 
@@ -247,7 +247,7 @@ resource "aws_s3_object" "create_and_insert_utils" {
 
 resource "aws_s3_object" "requirements" {
   bucket       = aws_s3_bucket.airflow_healthcare_provider_bucket.id
-  key          = "requirements"
+  key          = "requirements.txt"
   source       = "../DAGs/requirements.txt"
   content_type = "text/plain"
 }
@@ -370,6 +370,7 @@ resource "aws_iam_role_policy" "healthcare_mwaa_role_policy" {
 resource "aws_mwaa_environment" "healthcare_mwaa_environment" {
   name                  = "healthcare_mwaa_environment"
   dag_s3_path           = "dags/"
+  requirements_s3_path  = "requirements.txt"
   execution_role_arn    = aws_iam_role.healthcare_mwaa_role.arn
   environment_class     = "mw1.small"
   airflow_version       = "2.10.3"

@@ -59,6 +59,20 @@ def transform_patients(pat_path):
 
     return pat_df
 
+def transform_staff(staff_path):
+    staff_cols = ["staff_id", "last_updated", "first_name", "last_name", "phone_number", "role", "department_id", "position"]
+
+    staff_df = pd.read_csv(staff_path, names=staff_cols)
+
+    return staff_df
+
+def transform_departments(dep_path):
+    dep_cols = ["department_id", "last_updated", "department_name"]
+
+    dep_df = pd.read_csv(dep_path, names=[dep_cols])
+
+    return dep_df
+
 
 def lbs_to_kg(lbs):
     return int(int(lbs[:-3]) * 0.45359237)
@@ -130,6 +144,58 @@ def load_appointments(app_path):
                         appointment_date = EXCLUDED.appointment_date;
                       TRUNCATE TABLE staging_appointments;"""
 
+    cursor.execute(upsert_query)
+
+    conn.commit()
+    cursor.close()
+
+def load_staff(staff_path):
+    hook = PostgresHook(postgres_conn_id="healthcare_provider_olap_conn")
+    conn = hook.get_conn()
+    cursor = conn.cursor()
+
+    staging_string = "COPY staging_staff FROM {} WITH (FORMAT csv);"
+    staging_query = sql.SQL(staging_string).format(
+        sql.Literal(staff_path)
+    )
+
+    cursor.execute(staging_query)
+
+    upsert_query = """INSERT INTO dim_staff
+                      (staff_id, last_updated, first_name, last_name, phone_number, role, department_id, position)
+                      SELECT staff_id, last_updated, first_name, last_name, phone_number, role, department_id, position
+                      FROM staging_staff
+                      ON CONFLICT(staff_id)
+                      DO UPDATE SET
+                        last_updated = EXCLUDED.last_updated
+                      TRUNCATE TABLE staging_appointments;"""
+    
+    cursor.execute(upsert_query)
+
+    conn.commit()
+    cursor.close()
+
+def load_departments(dep_path):
+    hook = PostgresHook(postgres_conn_id="healthcare_provider_olap_conn")
+    conn = hook.get_conn()
+    cursor = conn.cursor()
+
+    staging_string = "COPY staging_staff FROM {} WITH (FORMAT csv);"
+    staging_query = sql.SQL(staging_string).format(
+        sql.Literal(dep_path)
+    )
+
+    cursor.execute(staging_query)
+
+    upsert_query = """INSERT INTO dim_departments
+                      (department_id, last_updated, department_name)
+                      SELECT department_id, last_updated, department_name
+                      FROM staging_departments
+                      ON CONFLICT(department_id)
+                      DO UPDATE SET
+                        last_updated = EXCLUDED.last_updated
+                      TRUNCATE TABLE staging_departments;"""
+    
     cursor.execute(upsert_query)
 
     conn.commit()

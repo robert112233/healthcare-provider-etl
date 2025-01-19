@@ -56,8 +56,8 @@ def create_random_appointment():
         'last_updated': datetime.now(),
         'appointment_date': create_random_date(),
         'appointment_status': statuses[randint(0, 3)],
-        'patient_id': randint(0, 500),
-        'staff_id': randint(0, 25),
+        'patient_id': randint(1, 500),
+        'staff_id': randint(1, 24),
         'notes': create_random_notes()
     }
 
@@ -260,3 +260,81 @@ def create_random_address():
     ][randint(1, 89)]
 
     return f'{house_number} {name} {suffix}'
+
+
+def insert_departments(oltp_conn):
+
+    oltp_conn.autocommit = True
+    cursor = oltp_conn.cursor()
+
+    departments = create_departments()
+    query = """
+    INSERT INTO departments (last_updated, department_name)
+    VALUES (%(last_updated)s, %(department_name)s);
+    """
+    for department in departments:
+        cursor.execute(query, department)
+    print(f"Inserted {len(departments)} departments successfully ✅")
+    oltp_conn.commit()
+    cursor.close()
+
+
+def create_departments():
+    dep_names = ["Accident & Emergency", "General Surgery", "Cardiology",
+                 "Oncology", "Paediatrics", "Radiology", "Gynaecology", 
+                 "Mental Health Services"]
+
+    return [create_department(dep_name) for dep_name in dep_names]
+
+
+def create_department(dep_name):
+    return {
+        'last_updated': datetime.now(),
+        'department_name': dep_name
+    }
+
+
+def insert_staff(oltp_conn):
+
+    oltp_conn.autocommit = True
+    cursor = oltp_conn.cursor()
+
+    staff = create_staff()
+    query = """
+    INSERT INTO staff (last_updated, first_name, last_name, phone_number, role, department_id, position)
+    VALUES (%(last_updated)s, %(firstname)s, %(last_name)s, %(phone_number)s, %(role)s, %(department_id)s, %(position)s);
+    """
+    for staff_member in staff:
+        cursor.execute(query, staff_member)
+    print(f"Inserted {len(staff)} staff successfully ✅")
+    oltp_conn.commit()
+    cursor.close()
+
+
+def create_staff():
+    staff = []
+    for _ in range(1, 25):
+        staff.append(create_random_staff_member())
+    return staff
+
+
+def create_random_staff_member():
+    
+    last_updated = datetime.now()
+
+    first_name, sex = create_first_name()
+
+    last_name = create_last_name()
+
+    phone_number = create_random_phone_number()
+
+    return {'last_updated': last_updated,
+    'first_name': first_name,
+    'last_name': last_name,
+    'phone_number': phone_number,
+    'role': ["Consultant", "Specialist", "General Practicioner"][randint(0,2)],
+    'department_id': randint(1,8),
+    'position' : ["Full time", "Part time", "Locum", "Contract"][randint(0,3)]
+    }
+
+print(create_staff())

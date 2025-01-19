@@ -12,8 +12,12 @@ from utils.etl_utils import (
     create_filepath,
     transform_appointments,
     transform_patients,
+    transform_staff,
+    transform_departments,
     load_appointments,
     load_patients,
+    load_staff,
+    load_departments,
     upload_to_s3
 )
 
@@ -93,15 +97,23 @@ with DAG(
     )
 
     def transform(**kwargs):
+        dep_path = create_filepath(kwargs, "departments", "extract")
+        staff_path = create_filepath(kwargs, "staff", "extract")
         pat_path = create_filepath(kwargs, "patients", "extract")
         app_path = create_filepath(kwargs, "appointments", "extract")
 
+        dep_df = transform_departments(dep_path)
+        staff_df = transform_staff(staff_path)
         pat_df = transform_patients(pat_path)
         app_df = transform_appointments(app_path)
 
+        trans_dep_path = create_filepath(kwargs, "departments", "transform")
+        trans_staff_path = create_filepath(kwargs, "staff", "transform")
         trans_pat_path = create_filepath(kwargs, "patients", "transform")
         trans_app_path = create_filepath(kwargs, "appointments", "transform")
 
+        dep_df.to_csv(trans_dep_path, index=False, header=False)
+        staff_df.to_csv(trans_staff_path, index=False, header=False)
         pat_df.to_csv(trans_pat_path, index=False, header=False)
         app_df.to_csv(trans_app_path, index=False, header=False)
 
@@ -111,11 +123,16 @@ with DAG(
     )
 
     def load(**kwargs):
+        dep_path = create_filepath(kwargs, "departments", "transform")
+        staff_path = create_filepath(kwargs, "staff", "transform")
         pat_path = create_filepath(kwargs, "patients", "transform")
         app_path = create_filepath(kwargs, "appointments", "transform")
 
-        load_appointments(app_path)
+        load_departments(dep_path)
+        load_staff(staff_path)
         load_patients(pat_path)
+        load_appointments(app_path)
+
 
     load_task = PythonOperator(
         task_id='load_task',
