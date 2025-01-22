@@ -25,9 +25,9 @@ def create_airflow_oltp_connection(RDS_ENDPOINT, MWAA_ENDPOINT):
                 "extra": '{"dbname": "healthcare_provider_oltp"}',
                 "port": 5432
                 }
-        response = requests.patch(patch, json=json, auth=('admin', 'admin'))
-        if response.status_code == 404:
-                requests.post(post, json=json, auth=('admin', 'admin'))
+        response = requests.post(post, json=json, auth=('admin', 'admin'))
+        # if response.status_code == 409:
+        #         requests.patch(patch, json=json, auth=('admin', 'admin'))
         print("Added 'healthcare_provider_oltp_conn' to Airflow connections 🔌")
     except ConnectionError:
         raise ConnectionError
@@ -52,10 +52,9 @@ def create_airflow_olap_connection(RDS_ENDPOINT, MWAA_ENDPOINT):
                 "extra": '{"dbname": "healthcare_provider_olap"}',
                 "port": 5432
                 }
-        response = requests.patch(pat_url, json=json, auth=('admin', 'admin'))
-
-        if response.status_code == 404:
-                requests.post(post_url, json=json, auth=('admin', 'admin'))
+        response = requests.post(post_url, json=json, auth=('admin', 'admin'))
+        # if response.status_code == 409:
+        #         requests.patch(pat_url, json=json, auth=('admin', 'admin'))
 
         print(
             "\nAdded 'healthcare_provider_olap_conn' to Airflow connections 🔌"
@@ -79,12 +78,12 @@ def create_airflow_aws_connection(MWAA_ENDPOINT):
                 "login": S3_IAM_ACCESS_KEY_ID,
                 "password": S3_IAM_SECRET_ACCESS_KEY,
                 }
-        response = requests.patch(patch,
-                                  json=json,
-                                  auth=('admin', 'admin')
-                                  )
-        if response.status_code == 404:
-            requests.post(post, json=json, auth=('admin', 'admin'))
+        response = requests.post(post, json=json, auth=('admin', 'admin'))
+        # if response.status_code == 409:
+        #     requests.patch(patch,
+        #                           json=json,
+        #                           auth=('admin', 'admin')
+        #                           )
 
         print("Added 'healthcare_provider_aws_conn' to Airflow connections 🔌")
     except ConnectionError:

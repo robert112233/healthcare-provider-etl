@@ -51,11 +51,11 @@ def create_random_appointments():
 
 
 def create_random_appointment():
-    statuses = ['upcoming', 'pending', 'booked', 'scheduled', 'missed', 'attended', 'attended']
+    statuses = ['upcoming', 'pending', 'booked', 'cancelled', 'scheduled', 'missed', 'attended', 'attended']
     return {
         'last_updated': datetime.now(),
         'appointment_date': create_random_date(),
-        'appointment_status': statuses[randint(0, 6)],
+        'appointment_status': statuses[randint(0, 7)],
         'patient_id': randint(1, 500),
         'staff_id': randint(1, 24),
         'notes': create_random_notes()

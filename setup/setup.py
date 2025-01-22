@@ -1,16 +1,16 @@
 import os
-import requests
-import psycopg2
-import subprocess
-from dotenv import load_dotenv
-from requests.auth import HTTPBasicAuth
+from store_env_var import store_env_var
+from get_mwaa_token import get_mwaa_token
+from apply_terraform import apply_terraform
+from create_connection import create_connection
 from exceptions import (
     MissingEnvsException, AuthException, DagNotFoundException)
 from build_local import build_oltp, build_olap
 from requests.exceptions import ConnectionError
 from create_tables import create_oltp_tables, create_olap_tables
+from trigger_dags import trigger_etl, trigger_update_appointments
 from create_and_insert_data import insert_patients, insert_appointments, insert_departments, insert_staff
-from create_connections import (
+from create_airflow_connections import (
     create_airflow_oltp_connection, create_airflow_olap_connection)
 
 
@@ -23,8 +23,8 @@ def setup():
             print("\nInvalid answer, aborting...\n")
         return
 
-    ENVIRONMENT = input("\nWhere would you like to \
-    provision the infracture? (local or cloud)\n"
+    ENVIRONMENT = input("\nWhere would you like to "
+    "provision the infracture? (local or cloud)\n"
                         )
 
     if ENVIRONMENT not in ['local', 'cloud']:
@@ -37,8 +37,8 @@ def setup():
             os.getcwd(), "DAGs"
         )
 
-    RDS_ENDPOINT = 'localhost'
-    MWAA_ENDPOINT = 'localhost:8081'
+    RDS_ENDPOINT = '127.0.0.1'
+    MWAA_ENDPOINT = '127.0.0.1:8080'
 
     try:
         if ENVIRONMENT == 'cloud':
@@ -52,23 +52,24 @@ def setup():
             store_env_var("BUCKET_SUFFIX", BUCKET_SUFFIX)
             store_env_var("S3_IAM_ACCESS_KEY_ID", S3_IAM_ACCESS_KEY_ID)
             store_env_var("S3_IAM_SECRET_ACCESS_KEY", S3_IAM_SECRET_ACCESS_KEY)
-            # create_airflow_aws_connection(MWAA_ENDPOINT)
 
         store_env_var("RDS_ENDPOINT", RDS_ENDPOINT)
         store_env_var("MWAA_ENDPOINT", MWAA_ENDPOINT)
         get_mwaa_token()
-        print("Prior to creating postgres connections")
+
         postgres_conn = create_connection("postgres", RDS_ENDPOINT)
 
         provision_databases(postgres_conn)
-        print("Prior to creating db connections")
+
+
         oltp_conn = create_connection("oltp", RDS_ENDPOINT)
         olap_conn = create_connection("olap", RDS_ENDPOINT)
-        print("Prior to creating airflow connections")
+
+
         create_airflow_connection(RDS_ENDPOINT, MWAA_ENDPOINT)
-        print("After creating airflow connections")
         create_tables(oltp_conn, olap_conn)
         create_and_insert_data(oltp_conn)
+
         trigger_update_appointments(MWAA_ENDPOINT)
         trigger_etl(MWAA_ENDPOINT)
 
@@ -86,34 +87,6 @@ def setup():
               "make sure to export the DAG path (step 4 in the README) 🔎")
 
 
-def create_connection(db, RDS_ENDPOINT):
-    load_dotenv()
-    DB_USERNAME = os.getenv("DB_USERNAME")
-    DB_PASSWORD = os.getenv("DB_PASSWORD")
-    OLTP_NAME = os.getenv("OLTP_NAME")
-    OLAP_NAME = os.getenv("OLAP_NAME")
-    if None in [DB_USERNAME, DB_PASSWORD, OLTP_NAME, OLAP_NAME]:
-        raise MissingEnvsException
-
-    dbname = 'postgres'
-
-    if db == "oltp":
-        dbname = OLTP_NAME
-    elif db == "olap":
-        dbname = OLAP_NAME
-
-    HOSTNAME = RDS_ENDPOINT.split(':')[0]
-
-    connection = psycopg2.connect(
-        dbname=dbname,
-        user=DB_USERNAME,
-        password=DB_PASSWORD,
-        host=HOSTNAME,
-        port=5432
-    )
-    return connection
-
-
 def provision_databases(postgres_conn):
     build_oltp(postgres_conn)
     build_olap(postgres_conn)
@@ -125,8 +98,6 @@ def create_airflow_connection(RDS_ENDPOINT, MWAA_ENDPOINT):
         create_airflow_olap_connection(RDS_ENDPOINT, MWAA_ENDPOINT)
     except ConnectionError:
         raise ConnectionError
-    except Exception:
-        print("an unknown exception occured!")
 
 
 def create_tables(oltp_conn, olap_conn):
@@ -141,91 +112,5 @@ def create_and_insert_data(oltp_conn):
     insert_staff(oltp_conn)
     insert_patients(oltp_conn)
     insert_appointments(oltp_conn)
-
-
-def trigger_update_appointments(MWAA_ENDPOINT):
-    print("triggering update appointments...")
-    url = f"http://{MWAA_ENDPOINT}/api/v1/dags/update_appointments"
-    headers = {
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "is_paused": False
-    }
-
-    auth = HTTPBasicAuth('admin', 'admin')
-    response = requests.patch(url, json=payload, headers=headers, auth=auth)
-    if response.status_code == 200:
-        print("\nDAG 'update_appointments' has been successfully unpaused. 🔧")
-    elif response.status_code == 404:
-        raise DagNotFoundException
-    else:
-        raise AuthException
-
-
-def trigger_etl(MWAA_ENDPOINT):
-    print("triggering ETL...")
-    url = f"http://{MWAA_ENDPOINT}/api/v1/dags/etl"
-    headers = {
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "is_paused": False
-    }
-
-    auth = HTTPBasicAuth('admin', 'admin')
-    response = requests.patch(url, json=payload, headers=headers, auth=auth)
-    if response.status_code == 200:
-        print("\nDAG 'etl' has been successfully unpaused. 🔧")
-        if MWAA_ENDPOINT == "http://localhost:8081":
-            print("\nThe first ingestion will soon be complete, \
-                  check the /tmp folder and connect to \
-                  local healthcare_provider_olap db to see loaded data ")
-        else:
-            print("\nThe first ingestion will soon be complete, \
-                  check the s3 buckets \
-                  and healthcare_provider_olap RDS to see loaded data")
-    else:
-        raise AuthException
-
-
-def apply_terraform():
-    print("\nApplying terraform, this will take approximately 1 hour  🏗️")
-    subprocess.run(['bash', '-c', './setup/cloud_setup.sh'])
-    print('\nApplied!')
-    result = subprocess.run(['bash', '-c', './setup/cloud_output.sh'],
-                            capture_output=True,
-                            text=True,
-                            check=True)
-    return result.stdout.strip().split('\n')
-
-
-def store_env_var(key, value):
-    with open('.env', 'r') as file:
-        content = file.readlines()
-
-    env_var_found = False
-    for i, line in enumerate(content):
-        if line.startswith(f"{key}="):
-            if line.strip() != f"{key}={value}":
-                content[i] = f"{key}={value}\n"
-            env_var_found = True
-            break
-
-    if not env_var_found:
-        content.append(f"\n{key}={value}")
-
-    with open('.env', 'w') as file:
-        file.writelines(content)
-
-def get_mwaa_token():
-    response = subprocess.run(['bash', '-c', './setup/create_web_token.sh'],
-                            capture_output=True,
-                            text=True,
-                            check=True)
-    MWAA_TOKEN = response.stdout.strip()
-
-    store_env_var("MWAA_TOKEN", MWAA_TOKEN)
-
 
 setup()

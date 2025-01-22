@@ -35,7 +35,7 @@ with col1:
         color=alt.Color('department_name:N', legend=None),
         tooltip=['department_name', 'appointment_count']
     ).properties(
-        title="Number of Appointments per Department",
+        title="Appointments per Department",
         width=800,
         height=400
     )
@@ -133,7 +133,7 @@ with col3:
         scale=alt.Scale(domain=['missed', 'cancelled'], range=['#03dbfc', '#fc0380'])),
     tooltip=['month', 'appointment_status', 'count']  
     ).properties(
-        title="2025 Missed And Cancelled Appointments",
+        title="Missed And Cancelled Appointments in 2025",
         width=600,
         height=400
     )
@@ -191,7 +191,7 @@ percentage_of_patients_reporting_flu_this_month = (number_of_patients_reporting_
 
 with col4:
 
-    st.markdown("**% Of Patients Reporting Flu Symptoms This Month**", unsafe_allow_html=True)
+    st.markdown("**Patients Reporting Flu Symptoms This Month**", unsafe_allow_html=True)
 
     fig = go.Figure(go.Indicator(
     mode="gauge+number+delta",
@@ -225,7 +225,6 @@ app_data = """SELECT
         year;"""
 
 app_df = pd.read_sql_query(app_data, olap_conn)
-print(app_df.head())
 
 attended_2025 = app_df[app_df['year'] == 2025]['attended'].values[0]
 not_attended_2025 = app_df[app_df['year'] == 2025]['not_attended'].values[0]
@@ -249,10 +248,10 @@ with col6:
         st.markdown(
     f"""
     <div style='text-align: center; font-size: 16px; color: white; background-color: #0068C9; padding: 20px; border-radius: 10px; max-width: 500px;'>
-        <div style='font-size: 36px; font-weight: bold;'>{percentage_of_apps_attended_2025}%</div>
-        Appointments Attended This Year<br>
-        <div style='font-size: 24px; font-weight: bold;'>{symbol} {percentage_change}%</div>
-        Compared To Last Year
+        <div style='font-size: 40px; font-weight: bold;'>{percentage_of_apps_attended_2025}%</div>
+        <div style='font-size: 20px; font-weight: bold;'>Appointments Attended This Year<br></div>
+        <div style='font-size: 30px; font-weight: bold;'>{symbol} {percentage_change}%</div>
+        <div style='font-size: 20px; font-weight: bold;'>Compared To Last Year<br></div>
     </div>
     """, 
     unsafe_allow_html=True
