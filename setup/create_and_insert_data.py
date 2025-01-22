@@ -209,7 +209,7 @@ def create_random_height():
     if metric == "cm":
         return f'{randint(155, 201)}cm'
     else:
-        return f'{randint(4,6)}\'{randint(0,12)}\"'
+        return f'{randint(4, 6)}\'{randint(0, 12)}\"'
 
 
 def create_random_weight():
@@ -218,7 +218,7 @@ def create_random_weight():
     if metric == "kg":
         return f'{randint(38, 120)}kg'
     else:
-        return f'{randint(84,264)}lbs'
+        return f'{randint(84, 264)}lbs'
 
 
 def create_random_phone_number():
