@@ -45,17 +45,17 @@ def insert_appointments(oltp_conn):
 
 def create_random_appointments():
     appointments = []
-    for _ in range(1, 101):
+    for _ in range(1, 1001):
         appointments.append(create_random_appointment())
     return appointments
 
 
 def create_random_appointment():
-    statuses = ['upcoming', 'pending', 'booked', 'scheduled']
+    statuses = ['upcoming', 'pending', 'booked', 'scheduled', 'missed', 'attended', 'attended']
     return {
         'last_updated': datetime.now(),
         'appointment_date': create_random_date(),
-        'appointment_status': statuses[randint(0, 3)],
+        'appointment_status': statuses[randint(0, 6)],
         'patient_id': randint(1, 500),
         'staff_id': randint(1, 24),
         'notes': create_random_notes()
@@ -63,7 +63,7 @@ def create_random_appointment():
 
 
 def create_random_date():
-    year = [datetime.now().year + 1, datetime.now().year + 2][randint(0, 1)]
+    year = [datetime.now().year - 1, datetime.now().year, datetime.now().year + 1][randint(0, 2)]
     month = randint(1, 12)
     day = randint(1, 28)
     hour = randint(9, 16)
@@ -94,7 +94,8 @@ def create_random_notes():
                 "cold sweats ", "chest pain ", "uncontrollable laughter ",
                 "lying down for long periods of time ", "vomiting ",
                 "an inability to stop talking ", "a midlife crisis ",
-                "mystical experiences ", "intense euphoria "][randint(0, 12)]
+                "mystical experiences ", "intense euphoria ", "flu ",
+                "loss of taste ", "a congested nose", "a temperature"][randint(0, 17)]
 
     solution = ["so I've recommended taking a brisk walk.",
                 "but I've put a wet paper towel on them so it should be fine.",
@@ -302,7 +303,7 @@ def insert_staff(oltp_conn):
     staff = create_staff()
     query = """
     INSERT INTO staff (last_updated, first_name, last_name, phone_number, role, department_id, position)
-    VALUES (%(last_updated)s, %(firstname)s, %(last_name)s, %(phone_number)s, %(role)s, %(department_id)s, %(position)s);
+    VALUES (%(last_updated)s, %(first_name)s, %(last_name)s, %(phone_number)s, %(role)s, %(department_id)s, %(position)s);
     """
     for staff_member in staff:
         cursor.execute(query, staff_member)
@@ -336,5 +337,3 @@ def create_random_staff_member():
     'department_id': randint(1,8),
     'position' : ["Full time", "Part time", "Locum", "Contract"][randint(0,3)]
     }
-
-print(create_staff())

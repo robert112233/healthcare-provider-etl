@@ -69,7 +69,7 @@ def transform_staff(staff_path):
 def transform_departments(dep_path):
     dep_cols = ["department_id", "last_updated", "department_name"]
 
-    dep_df = pd.read_csv(dep_path, names=[dep_cols])
+    dep_df = pd.read_csv(dep_path, names=dep_cols)
 
     return dep_df
 
@@ -167,7 +167,7 @@ def load_staff(staff_path):
                       FROM staging_staff
                       ON CONFLICT(staff_id)
                       DO UPDATE SET
-                        last_updated = EXCLUDED.last_updated
+                        last_updated = EXCLUDED.last_updated;
                       TRUNCATE TABLE staging_appointments;"""
     
     cursor.execute(upsert_query)
@@ -180,7 +180,7 @@ def load_departments(dep_path):
     conn = hook.get_conn()
     cursor = conn.cursor()
 
-    staging_string = "COPY staging_staff FROM {} WITH (FORMAT csv);"
+    staging_string = "COPY staging_departments FROM {} WITH (FORMAT csv);"
     staging_query = sql.SQL(staging_string).format(
         sql.Literal(dep_path)
     )
@@ -193,7 +193,7 @@ def load_departments(dep_path):
                       FROM staging_departments
                       ON CONFLICT(department_id)
                       DO UPDATE SET
-                        last_updated = EXCLUDED.last_updated
+                        last_updated = EXCLUDED.last_updated;
                       TRUNCATE TABLE staging_departments;"""
     
     cursor.execute(upsert_query)

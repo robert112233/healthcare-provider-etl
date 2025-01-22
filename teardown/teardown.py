@@ -22,7 +22,7 @@ def teardown():
             subprocess.run(['bash', '-c', './setup/cloud_setup.sh'])
     except ConnectionError:
         print("""\nConnection error,
-              make sure the webserver & scheduler are running! 🎛️""")
+                make sure the webserver & scheduler are running! 🎛️""")
 
 
 def delete_connections(MWAA_ENDPOINT):
@@ -41,7 +41,6 @@ def delete_connections(MWAA_ENDPOINT):
 
 def delete_dbs(RDS_ENDPOINT):
     postgres_conn = create_connection("postgres", RDS_ENDPOINT)
-
     postgres_conn.autocommit = True
     cursor = postgres_conn.cursor()
 
@@ -54,7 +53,7 @@ def delete_dbs(RDS_ENDPOINT):
         print("""You are still connected to healthcare_provider_oltp somewhere!
               Disconnect and try again""")
     except InvalidCatalogName:
-        print("Database doesn't exist! Skipping ⏩")
+        print("Database healthcare_provider_oltp doesn't exist! Skipping ⏩")
 
     try:
         create_oltp_query = "DROP DATABASE healthcare_provider_olap;"
@@ -65,7 +64,7 @@ def delete_dbs(RDS_ENDPOINT):
         print("""You are still connected to healthcare_provider_olap somewhere!
               Disconnect and try again""")
     except InvalidCatalogName:
-        print("Database doesn't exist! Skipping ⏩")
+        print("Database healthcare_provider_olap doesn't exist! Skipping ⏩")
 
     cursor.close()
 

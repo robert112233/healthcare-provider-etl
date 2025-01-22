@@ -13,6 +13,7 @@ def create_airflow_oltp_connection(RDS_ENDPOINT, MWAA_ENDPOINT):
         DB_PASSWORD = os.getenv("DB_PASSWORD")
         HOSTNAME = RDS_ENDPOINT.split(":")[0]
 
+
         conn_name = "healthcare_provider_oltp_conn"
         patch = f'http://{MWAA_ENDPOINT}/api/v1/connections/{conn_name}'
         post = f'http://{MWAA_ENDPOINT}/api/v1/connections'
@@ -26,8 +27,7 @@ def create_airflow_oltp_connection(RDS_ENDPOINT, MWAA_ENDPOINT):
                 }
         response = requests.patch(patch, json=json, auth=('admin', 'admin'))
         if response.status_code == 404:
-            requests.post(post, json=json, auth=('admin', 'admin'))
-
+                requests.post(post, json=json, auth=('admin', 'admin'))
         print("Added 'healthcare_provider_oltp_conn' to Airflow connections 🔌")
     except ConnectionError:
         raise ConnectionError
@@ -40,6 +40,7 @@ def create_airflow_olap_connection(RDS_ENDPOINT, MWAA_ENDPOINT):
         DB_USERNAME = os.getenv("DB_USERNAME")
         DB_PASSWORD = os.getenv("DB_PASSWORD")
         HOSTNAME = RDS_ENDPOINT.split(":")[0]
+
         conn_name = "healthcare_provider_olap_conn"
         pat_url = f'http://{MWAA_ENDPOINT}/api/v1/connections/{conn_name}'
         post_url = f'http://{MWAA_ENDPOINT}/api/v1/connections'
@@ -52,8 +53,9 @@ def create_airflow_olap_connection(RDS_ENDPOINT, MWAA_ENDPOINT):
                 "port": 5432
                 }
         response = requests.patch(pat_url, json=json, auth=('admin', 'admin'))
+
         if response.status_code == 404:
-            requests.post(post_url, json=json, auth=('admin', 'admin'))
+                requests.post(post_url, json=json, auth=('admin', 'admin'))
 
         print(
             "\nAdded 'healthcare_provider_olap_conn' to Airflow connections 🔌"
@@ -87,3 +89,4 @@ def create_airflow_aws_connection(MWAA_ENDPOINT):
         print("Added 'healthcare_provider_aws_conn' to Airflow connections 🔌")
     except ConnectionError:
         raise ConnectionError
+    

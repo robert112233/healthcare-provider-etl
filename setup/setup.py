@@ -56,7 +56,8 @@ def setup():
 
         store_env_var("RDS_ENDPOINT", RDS_ENDPOINT)
         store_env_var("MWAA_ENDPOINT", MWAA_ENDPOINT)
-
+        get_mwaa_token()
+        print("Prior to creating postgres connections")
         postgres_conn = create_connection("postgres", RDS_ENDPOINT)
 
         provision_databases(postgres_conn)
@@ -72,17 +73,17 @@ def setup():
         trigger_etl(MWAA_ENDPOINT)
 
     except ConnectionError:
-        print("\nConnection error, \
-              make sure the webserver & scheduler are running! 🎛️")
+        print("\nConnection error, "
+              "make sure the webserver & scheduler are running! 🎛️")
     except MissingEnvsException:
-        print("\nMissing environment variable, \
-              check they have been set correctly in .env 📄")
+        print("\nMissing environment variable, "
+              "check they have been set correctly in .env 📄")
     except AuthException:
-        print("\nNot authenticated to use the Airflow API, \
-              make sure to create an admin user (step 5 in the README) 🛂")
+        print("\nNot authenticated to use the Airflow API, "
+              "make sure to create an admin user (step 5 in the README) 🛂")
     except DagNotFoundException:
-        print("\nThe script can't locate a dag, \
-              make sure to export the DAG path (step 4 in the README) 🔎")
+        print("\nThe script can't locate a dag, "
+              "make sure to export the DAG path (step 4 in the README) 🔎")
 
 
 def create_connection(db, RDS_ENDPOINT):
@@ -120,8 +121,8 @@ def provision_databases(postgres_conn):
 
 def create_airflow_connection(RDS_ENDPOINT, MWAA_ENDPOINT):
     try:
-        create_airflow_olap_connection(RDS_ENDPOINT, MWAA_ENDPOINT)
         create_airflow_oltp_connection(RDS_ENDPOINT, MWAA_ENDPOINT)
+        create_airflow_olap_connection(RDS_ENDPOINT, MWAA_ENDPOINT)
     except ConnectionError:
         raise ConnectionError
     except Exception:
@@ -216,6 +217,15 @@ def store_env_var(key, value):
 
     with open('.env', 'w') as file:
         file.writelines(content)
+
+def get_mwaa_token():
+    response = subprocess.run(['bash', '-c', './setup/create_web_token.sh'],
+                            capture_output=True,
+                            text=True,
+                            check=True)
+    MWAA_TOKEN = response.stdout.strip()
+
+    store_env_var("MWAA_TOKEN", MWAA_TOKEN)
 
 
 setup()
