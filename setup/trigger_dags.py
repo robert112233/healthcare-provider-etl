@@ -1,7 +1,8 @@
 from exceptions import (
-    MissingEnvsException, AuthException, DagNotFoundException)
+    AuthException, DagNotFoundException)
 import requests
 from requests.auth import HTTPBasicAuth
+
 
 def trigger_update_appointments(MWAA_ENDPOINT):
     print("triggering update appointments...")
@@ -13,8 +14,9 @@ def trigger_update_appointments(MWAA_ENDPOINT):
         "is_paused": False
     }
     auth = HTTPBasicAuth('admin', 'admin')
-    try: 
-        response = requests.patch(url, json=payload, headers=headers, auth=auth, timeout=3)
+    try:
+        response = requests.patch(url, json=payload, headers=headers,
+                                  auth=auth, timeout=3)
         if response.status_code == 401:
             raise AuthException
         elif response.status_code == 404:
@@ -35,16 +37,17 @@ def trigger_etl(MWAA_ENDPOINT):
 
     auth = HTTPBasicAuth('admin', 'admin')
     try:
-        response = requests.patch(url, json=payload, headers=headers, auth=auth, timeout=3)
+        response = requests.patch(url, json=payload, headers=headers,
+                                  auth=auth, timeout=3)
         if response.status_code == 401:
             raise AuthException
     except requests.exceptions.Timeout:
         print("\nDAG 'etl' has been successfully unpaused. 🔧")
         if MWAA_ENDPOINT == "http://127.0.0.1:8080":
             print("\nThe first ingestion will soon be complete, "
-                "check the /tmp folder and connect to "
-                "local healthcare_provider_olap db to see loaded data")
+                  "check the /tmp folder and connect to "
+                  "local healthcare_provider_olap db to see loaded data")
         else:
             print("\nThe first ingestion will soon be complete, "
-                "check the s3 buckets "
-                "and healthcare_provider_olap RDS to see loaded data")
+                  "check the s3 buckets "
+                  "and healthcare_provider_olap RDS to see loaded data")

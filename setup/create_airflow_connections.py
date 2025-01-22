@@ -13,9 +13,7 @@ def create_airflow_oltp_connection(RDS_ENDPOINT, MWAA_ENDPOINT):
         DB_PASSWORD = os.getenv("DB_PASSWORD")
         HOSTNAME = RDS_ENDPOINT.split(":")[0]
 
-
         conn_name = "healthcare_provider_oltp_conn"
-        patch = f'http://{MWAA_ENDPOINT}/api/v1/connections/{conn_name}'
         post = f'http://{MWAA_ENDPOINT}/api/v1/connections'
         json = {"connection_id": conn_name,
                 "conn_type": "postgres",
@@ -25,9 +23,7 @@ def create_airflow_oltp_connection(RDS_ENDPOINT, MWAA_ENDPOINT):
                 "extra": '{"dbname": "healthcare_provider_oltp"}',
                 "port": 5432
                 }
-        response = requests.post(post, json=json, auth=('admin', 'admin'))
-        # if response.status_code == 409:
-        #         requests.patch(patch, json=json, auth=('admin', 'admin'))
+        requests.post(post, json=json, auth=('admin', 'admin'))
         print("Added 'healthcare_provider_oltp_conn' to Airflow connections 🔌")
     except ConnectionError:
         raise ConnectionError
@@ -42,7 +38,6 @@ def create_airflow_olap_connection(RDS_ENDPOINT, MWAA_ENDPOINT):
         HOSTNAME = RDS_ENDPOINT.split(":")[0]
 
         conn_name = "healthcare_provider_olap_conn"
-        pat_url = f'http://{MWAA_ENDPOINT}/api/v1/connections/{conn_name}'
         post_url = f'http://{MWAA_ENDPOINT}/api/v1/connections'
         json = {"connection_id": conn_name,
                 "conn_type": "postgres",
@@ -52,10 +47,7 @@ def create_airflow_olap_connection(RDS_ENDPOINT, MWAA_ENDPOINT):
                 "extra": '{"dbname": "healthcare_provider_olap"}',
                 "port": 5432
                 }
-        response = requests.post(post_url, json=json, auth=('admin', 'admin'))
-        # if response.status_code == 409:
-        #         requests.patch(pat_url, json=json, auth=('admin', 'admin'))
-
+        requests.post(post_url, json=json, auth=('admin', 'admin'))
         print(
             "\nAdded 'healthcare_provider_olap_conn' to Airflow connections 🔌"
              )
@@ -71,21 +63,14 @@ def create_airflow_aws_connection(MWAA_ENDPOINT):
         S3_IAM_ACCESS_KEY_ID = os.getenv("S3_IAM_ACCESS_KEY_ID")
         S3_IAM_SECRET_ACCESS_KEY = os.getenv("S3_IAM_SECRET_ACCESS_KEY")
         conn_name = 'healthcare_provider_aws_conn'
-        patch = f'http://{MWAA_ENDPOINT}/api/v1/connections/{conn_name}'
         post = f'http://{MWAA_ENDPOINT}/api/v1/connections'
         json = {"connection_id": conn_name,
                 "conn_type": "aws",
                 "login": S3_IAM_ACCESS_KEY_ID,
                 "password": S3_IAM_SECRET_ACCESS_KEY,
                 }
-        response = requests.post(post, json=json, auth=('admin', 'admin'))
-        # if response.status_code == 409:
-        #     requests.patch(patch,
-        #                           json=json,
-        #                           auth=('admin', 'admin')
-        #                           )
+        requests.post(post, json=json, auth=('admin', 'admin'))
 
         print("Added 'healthcare_provider_aws_conn' to Airflow connections 🔌")
     except ConnectionError:
         raise ConnectionError
-    

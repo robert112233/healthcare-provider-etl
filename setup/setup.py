@@ -9,7 +9,8 @@ from build_local import build_oltp, build_olap
 from requests.exceptions import ConnectionError
 from create_tables import create_oltp_tables, create_olap_tables
 from trigger_dags import trigger_etl, trigger_update_appointments
-from create_and_insert_data import insert_patients, insert_appointments, insert_departments, insert_staff
+from create_and_insert_data import (
+    insert_patients, insert_appointments, insert_departments, insert_staff)
 from create_airflow_connections import (
     create_airflow_oltp_connection, create_airflow_olap_connection)
 
@@ -24,7 +25,7 @@ def setup():
         return
 
     ENVIRONMENT = input("\nWhere would you like to "
-    "provision the infracture? (local or cloud)\n"
+                        "provision the infracture? (local or cloud)\n"
                         )
 
     if ENVIRONMENT not in ['local', 'cloud']:
@@ -61,10 +62,8 @@ def setup():
 
         provision_databases(postgres_conn)
 
-
         oltp_conn = create_connection("oltp", RDS_ENDPOINT)
         olap_conn = create_connection("olap", RDS_ENDPOINT)
-
 
         create_airflow_connection(RDS_ENDPOINT, MWAA_ENDPOINT)
         create_tables(oltp_conn, olap_conn)
@@ -112,5 +111,6 @@ def create_and_insert_data(oltp_conn):
     insert_staff(oltp_conn)
     insert_patients(oltp_conn)
     insert_appointments(oltp_conn)
+
 
 setup()

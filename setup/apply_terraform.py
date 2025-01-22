@@ -1,5 +1,6 @@
 import subprocess
 
+
 def apply_terraform():
     print("\nApplying terraform, this will take approximately 1 hour  🏗️")
     subprocess.run(['bash', '-c', './setup/cloud_setup.sh'])

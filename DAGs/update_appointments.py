@@ -18,7 +18,7 @@ with DAG(
 ) as dag:
 
     def update_appointments():
-        amount = randint(1, 20)
+        amount = randint(5, 20)
         hook = PostgresHook(postgres_conn_id="healthcare_provider_oltp_conn")
         conn = hook.get_conn()
         cursor = conn.cursor()
@@ -27,7 +27,8 @@ with DAG(
 
         for _ in range(amount):
             random_id = randint(1, max_id)
-            random_status = ['cancelled', 'attended', 'attended', 'missed'][randint(0, 3)]
+            random_status = ['cancelled', 'attended', 'attended',
+                             'missed'][randint(0, 3)]
 
             query = """UPDATE appointments
                     SET appointment_status = %(random_status)s,
@@ -44,7 +45,7 @@ with DAG(
         cursor.close()
 
     def insert_random_appointments():
-        amount = randint(5, 20)
+        amount = randint(10, 30)
         hook = PostgresHook(postgres_conn_id="healthcare_provider_oltp_conn")
         conn = hook.get_conn()
         cursor = conn.cursor()

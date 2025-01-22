@@ -59,12 +59,15 @@ def transform_patients(pat_path):
 
     return pat_df
 
+
 def transform_staff(staff_path):
-    staff_cols = ["staff_id", "last_updated", "first_name", "last_name", "phone_number", "role", "department_id", "position"]
+    staff_cols = ["staff_id", "last_updated", "first_name", "last_name",
+                  "phone_number", "role", "department_id", "position"]
 
     staff_df = pd.read_csv(staff_path, names=staff_cols)
 
     return staff_df
+
 
 def transform_departments(dep_path):
     dep_cols = ["department_id", "last_updated", "department_name"]
@@ -149,6 +152,7 @@ def load_appointments(app_path):
     conn.commit()
     cursor.close()
 
+
 def load_staff(staff_path):
     hook = PostgresHook(postgres_conn_id="healthcare_provider_olap_conn")
     conn = hook.get_conn()
@@ -162,18 +166,21 @@ def load_staff(staff_path):
     cursor.execute(staging_query)
 
     upsert_query = """INSERT INTO dim_staff
-                      (staff_id, last_updated, first_name, last_name, phone_number, role, department_id, position)
-                      SELECT staff_id, last_updated, first_name, last_name, phone_number, role, department_id, position
+                      (staff_id, last_updated, first_name, last_name,
+                      phone_number, role, department_id, position)
+                      SELECT staff_id, last_updated, first_name,
+                      last_name, phone_number, role, department_id, position
                       FROM staging_staff
                       ON CONFLICT(staff_id)
                       DO UPDATE SET
                         last_updated = EXCLUDED.last_updated;
                       TRUNCATE TABLE staging_appointments;"""
-    
+
     cursor.execute(upsert_query)
 
     conn.commit()
     cursor.close()
+
 
 def load_departments(dep_path):
     hook = PostgresHook(postgres_conn_id="healthcare_provider_olap_conn")
@@ -195,7 +202,7 @@ def load_departments(dep_path):
                       DO UPDATE SET
                         last_updated = EXCLUDED.last_updated;
                       TRUNCATE TABLE staging_departments;"""
-    
+
     cursor.execute(upsert_query)
 
     conn.commit()

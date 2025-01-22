@@ -141,7 +141,6 @@ def create_olap_tables(olap_conn):
                             notes VARCHAR
                             );"""
 
-
     cursor.execute(olap_create_query)
 
     print("olap tables created successfully ✅")

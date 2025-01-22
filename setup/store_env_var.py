@@ -1,4 +1,4 @@
-import subprocess
+
 
 def store_env_var(key, value):
     with open('.env', 'r') as file:

@@ -133,7 +133,6 @@ with DAG(
         load_patients(pat_path)
         load_appointments(app_path)
 
-
     load_task = PythonOperator(
         task_id='load_task',
         python_callable=load

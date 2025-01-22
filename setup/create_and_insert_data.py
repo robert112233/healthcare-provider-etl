@@ -45,17 +45,18 @@ def insert_appointments(oltp_conn):
 
 def create_random_appointments():
     appointments = []
-    for _ in range(1, 1001):
+    for _ in range(1, 5000):
         appointments.append(create_random_appointment())
     return appointments
 
 
 def create_random_appointment():
-    statuses = ['upcoming', 'pending', 'booked', 'cancelled', 'scheduled', 'missed', 'attended', 'attended']
+    statuses = ['upcoming', 'pending', 'booked', 'cancelled',
+                'scheduled', 'missed', 'attended', 'attended', 'attended']
     return {
         'last_updated': datetime.now(),
         'appointment_date': create_random_date(),
-        'appointment_status': statuses[randint(0, 7)],
+        'appointment_status': statuses[randint(0, 8)],
         'patient_id': randint(1, 500),
         'staff_id': randint(1, 24),
         'notes': create_random_notes()
@@ -63,7 +64,8 @@ def create_random_appointment():
 
 
 def create_random_date():
-    year = [datetime.now().year - 1, datetime.now().year, datetime.now().year + 1][randint(0, 2)]
+    year = [datetime.now().year - 1, datetime.now().year,
+            datetime.now().year + 1][randint(0, 2)]
     month = randint(1, 12)
     day = randint(1, 28)
     hour = randint(9, 16)
@@ -95,7 +97,8 @@ def create_random_notes():
                 "lying down for long periods of time ", "vomiting ",
                 "an inability to stop talking ", "a midlife crisis ",
                 "mystical experiences ", "intense euphoria ", "flu ",
-                "loss of taste ", "a congested nose", "a temperature"][randint(0, 17)]
+                "loss of taste ", "a congested nose",
+                "a temperature"][randint(0, 17)]
 
     solution = ["so I've recommended taking a brisk walk.",
                 "but I've put a wet paper towel on them so it should be fine.",
@@ -282,7 +285,7 @@ def insert_departments(oltp_conn):
 
 def create_departments():
     dep_names = ["Accident & Emergency", "General Surgery", "Cardiology",
-                 "Oncology", "Paediatrics", "Radiology", "Gynaecology", 
+                 "Oncology", "Paediatrics", "Radiology", "Gynaecology",
                  "Mental Health Services"]
 
     return [create_department(dep_name) for dep_name in dep_names]
@@ -302,8 +305,10 @@ def insert_staff(oltp_conn):
 
     staff = create_staff()
     query = """
-    INSERT INTO staff (last_updated, first_name, last_name, phone_number, role, department_id, position)
-    VALUES (%(last_updated)s, %(first_name)s, %(last_name)s, %(phone_number)s, %(role)s, %(department_id)s, %(position)s);
+    INSERT INTO staff (last_updated, first_name, last_name,
+    phone_number, role, department_id, position)
+    VALUES (%(last_updated)s, %(first_name)s, %(last_name)s,
+    %(phone_number)s, %(role)s, %(department_id)s, %(position)s);
     """
     for staff_member in staff:
         cursor.execute(query, staff_member)
@@ -320,7 +325,7 @@ def create_staff():
 
 
 def create_random_staff_member():
-    
+
     last_updated = datetime.now()
 
     first_name, sex = create_first_name()
@@ -330,10 +335,12 @@ def create_random_staff_member():
     phone_number = create_random_phone_number()
 
     return {'last_updated': last_updated,
-    'first_name': first_name,
-    'last_name': last_name,
-    'phone_number': phone_number,
-    'role': ["Consultant", "Specialist", "General Practicioner"][randint(0,2)],
-    'department_id': randint(1,8),
-    'position' : ["Full time", "Part time", "Locum", "Contract"][randint(0,3)]
-    }
+            'first_name': first_name,
+            'last_name': last_name,
+            'phone_number': phone_number,
+            'role': ["Consultant", "Specialist",
+                     "General Practicioner"][randint(0, 2)],
+            'department_id': randint(1, 8),
+            'position': ["Full time", "Part time", "Locum",
+                         "Contract"][randint(0, 3)]
+            }

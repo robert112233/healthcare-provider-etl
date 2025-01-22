@@ -2,6 +2,7 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 
+
 def create_connection(db, RDS_ENDPOINT):
     load_dotenv()
     DB_USERNAME = os.getenv("DB_USERNAME")
